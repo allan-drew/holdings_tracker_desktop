@@ -1,5 +1,8 @@
-from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout
+import sys
+from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QApplication
+from PySide6.QtCore import Qt
 
+from holdings_tracker_desktop.ui.core.themes import DARK_THEME, LIGHT_THEME
 from holdings_tracker_desktop.version import get_app_version
 from holdings_tracker_desktop.ui.core import translations as i18n
 from holdings_tracker_desktop.ui.core.app_settings import AppSettings
@@ -42,7 +45,13 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"Holdings Tracker v{get_app_version()}")
         self._setup_layout()
         self._setup_panels()
-        self.setStyleSheet(base.base_styles())
+
+    def _apply_system_theme(self):
+        app = QApplication(sys.argv)
+        is_dark = (
+            app.styleHints().colorScheme() == Qt.ColorScheme.Dark
+        )
+        self.setStyleSheet(DARK_THEME if is_dark else LIGHT_THEME)
 
     def _setup_layout(self):
         self.central_widget = QWidget()
