@@ -7,12 +7,13 @@ from PySide6.QtWidgets import QVBoxLayout, QMenuBar
 
 from holdings_tracker_desktop.database import get_db
 from holdings_tracker_desktop.services.asset_type_service import AssetTypeService
+from holdings_tracker_desktop.services.currency_service import CurrencyService
 from holdings_tracker_desktop.services.position_snapshot_service import PositionSnapshotService
 from holdings_tracker_desktop.ui.core import t, global_signals
 from holdings_tracker_desktop.ui.widgets.pie_chart_widget import PieChartWidget
 from holdings_tracker_desktop.ui.widgets.translatable_widget import TranslatableWidget
 
-MENU_KEYS = ("charts", "asset_type", "year")
+MENU_KEYS = ("charts", "asset_type", "currency", "year")
 
 TRANSLATABLE_ACTIONS = ("by_assets", "by_sectors", "all")
 
@@ -20,6 +21,8 @@ TRANSLATABLE_ACTIONS = ("by_assets", "by_sectors", "all")
 class ChartState:
     dimension: str = "asset"
     asset_type_id: Optional[int] = None
+    currency_id: Optional[int] = None
+    currency_code: str = ""
     year: int = Date.today().year
 
 class ChartsWidget(TranslatableWidget):
@@ -75,6 +78,7 @@ class ChartsWidget(TranslatableWidget):
         self.actions: dict[str, object] = {}
         self.state = ChartState()
         self._asset_types_menu = None
+        self._currencies_menu = None
         self._years_menu = None
 
     def _setup_ui(self):
@@ -99,6 +103,10 @@ class ChartsWidget(TranslatableWidget):
         self.menus["asset_type"] = asset_type_menu
         self._asset_types_menu = asset_type_menu
 
+        currency_menu = menu_bar.addMenu("")
+        self.menus["currency"] = currency_menu
+        self._currencies_menu = currency_menu
+
         year_menu = menu_bar.addMenu("")
         self.menus["year"] = year_menu
         self._years_menu = year_menu
@@ -116,6 +124,7 @@ class ChartsWidget(TranslatableWidget):
         if not self._data_loaded and self.isVisible():
             self._data_loaded = True
             self._load_asset_types(self._asset_types_menu)
+            self._load_currencies(self._currencies_menu)
             self._load_years(self._years_menu)
             self._refresh_chart()
 
@@ -153,6 +162,43 @@ class ChartsWidget(TranslatableWidget):
 
     def _on_asset_type_selected(self, asset_type_id: int):
         self.state.asset_type_id = None if asset_type_id == 0 else asset_type_id
+        self._refresh_chart()
+
+    def refresh_currencies_menu(self):
+        menu = self.menus.get("currency")
+        if not menu:
+            return
+
+        menu.clear()
+        self._load_currencies(menu)
+        self._refresh_chart()
+
+    def _load_currencies(self, menu):
+        """
+        List only currencies that have assets. Costs in different currencies
+        cannot be summed, so the chart always shows a single currency.
+        """
+        with get_db() as db:
+            currencies = [
+                (currency.id, currency.code, currency.assets_count)
+                for currency in CurrencyService(db).list_all_models()
+                if currency.assets_count > 0
+            ]
+
+        for currency_id, code, _ in currencies:
+            self._add_action(
+                menu, code, (currency_id, code),
+                self._on_currency_selected,
+            )
+
+        available_ids = {currency_id for currency_id, _, _ in currencies}
+        if currencies and self.state.currency_id not in available_ids:
+            currency_id, code, _ = max(currencies, key=lambda c: c[2])
+            self.state.currency_id = currency_id
+            self.state.currency_code = code
+
+    def _on_currency_selected(self, currency: tuple[int, str]):
+        self.state.currency_id, self.state.currency_code = currency
         self._refresh_chart()
 
     def _load_years(self, menu):
@@ -204,6 +250,7 @@ class ChartsWidget(TranslatableWidget):
 
         return t(key).format(
             asset_type=asset_type_label,
+            currency=self.state.currency_code or t("all"),
             year=self.state.year,
         )
 
@@ -230,4 +277,5 @@ class ChartsWidget(TranslatableWidget):
                 service,
                 year=self.state.year,
                 asset_type_id=self.state.asset_type_id,
+                currency_id=self.state.currency_id,
             )

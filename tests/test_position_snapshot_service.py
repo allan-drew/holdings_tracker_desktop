@@ -129,3 +129,27 @@ def test_total_value_adds_costs_on_buy_and_deducts_them_on_sell():
 
     assert buy.total_value == Decimal("51.5")
     assert sell.total_value == Decimal("48.5")
+
+
+def test_allocation_is_filtered_by_currency(db, refs, make_asset):
+    from holdings_tracker_desktop.models import Asset, Currency
+    from holdings_tracker_desktop.services.position_snapshot_service import PositionSnapshotService
+
+    usd = Currency(name="Dollar", code="USD", symbol="US$")
+    db.add(usd)
+    db.commit()
+
+    brl_asset = make_asset("BRL3")
+    usd_asset = Asset(ticker="USD1", type_id=refs["asset_type"].id, currency_id=usd.id)
+    db.add(usd_asset)
+    db.commit()
+
+    add_note(db, refs, brl_asset, OperationType.BUY, date(2024, 1, 1), "10", "10")
+    add_note(db, refs, usd_asset, OperationType.BUY, date(2024, 1, 1), "10", "20")
+
+    service = PositionSnapshotService(db)
+    by_brl = service.get_allocation_by_asset(2024, currency_id=refs["currency"].id)
+    by_usd = service.get_allocation_by_sector(2024, currency_id=usd.id)
+
+    assert by_brl == [{"label": "BRL3", "value": 100.0}]
+    assert by_usd == [{"label": "Unclassified", "value": 200.0}]

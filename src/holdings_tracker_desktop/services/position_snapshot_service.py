@@ -106,7 +106,12 @@ class PositionSnapshotService:
         min_date: Date | None = self.db.query(func.min(PositionSnapshot.snapshot_date)).scalar()
         return min_date
 
-    def get_allocation_by_asset(self, year: int, asset_type_id: int | None = None) -> list[dict]:
+    def get_allocation_by_asset(
+        self,
+        year: int,
+        asset_type_id: int | None = None,
+        currency_id: int | None = None
+    ) -> list[dict]:
         query, total_cost = self._base_allocation_query(year)
 
         query = query.with_entities(
@@ -114,8 +119,7 @@ class PositionSnapshotService:
             total_cost
         )
 
-        if asset_type_id is not None:
-            query = query.filter(Asset.type_id == asset_type_id)
+        query = self._filter_allocation(query, asset_type_id, currency_id)
 
         rows = (
             query
@@ -130,7 +134,12 @@ class PositionSnapshotService:
             if total > 0
         ]
 
-    def get_allocation_by_sector(self, year: int, asset_type_id: int | None = None) -> list[dict]:
+    def get_allocation_by_sector(
+        self,
+        year: int,
+        asset_type_id: int | None = None,
+        currency_id: int | None = None
+    ) -> list[dict]:
         query, total_cost = self._base_allocation_query(year)
 
         sector_label = func.coalesce(AssetSector.name, "Unclassified").label("sector_name")
@@ -143,8 +152,7 @@ class PositionSnapshotService:
             AssetSector.id == Asset.sector_id
         )
 
-        if asset_type_id is not None:
-            query = query.filter(Asset.type_id == asset_type_id)
+        query = self._filter_allocation(query, asset_type_id, currency_id)
 
         rows = (
             query
@@ -158,6 +166,17 @@ class PositionSnapshotService:
             for sector, total in rows
             if total and total > 0
         ]
+
+    def _filter_allocation(self, query, asset_type_id: int | None, currency_id: int | None):
+        # Costs in different currencies cannot be summed, so callers should
+        # always pass a currency_id when assets use more than one currency.
+        if asset_type_id is not None:
+            query = query.filter(Asset.type_id == asset_type_id)
+
+        if currency_id is not None:
+            query = query.filter(Asset.currency_id == currency_id)
+
+        return query
 
     def _base_allocation_query(self, year: int):
         subquery = (
