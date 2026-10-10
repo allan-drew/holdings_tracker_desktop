@@ -6,7 +6,7 @@ from holdings_tracker_desktop.services.position_snapshot_service import Position
 from holdings_tracker_desktop.ui.comboboxes import PositionSnapshotYearComboBox, AssetTypeComboBox
 from holdings_tracker_desktop.ui.core import t
 from holdings_tracker_desktop.ui.core.formatters import format_date
-from holdings_tracker_desktop.ui.core.ui_helpers import prepare_table, table_item, decimal_table_item
+from holdings_tracker_desktop.ui.core.ui_helpers import prepare_table, table_item, decimal_table_item, quantity_table_item
 from holdings_tracker_desktop.ui.widgets.entity_manager_widget import EntityManagerWidget
 
 class PositionSnapshotsWidget(EntityManagerWidget):
@@ -127,7 +127,7 @@ class PositionSnapshotsWidget(EntityManagerWidget):
         for row, item in enumerate(items):
             self.table.setItem(row, 0, table_item(item['asset_ticker'], item['id']))
             self.table.setItem(row, 1, table_item(format_date(item['snapshot_date'])))
-            self.table.setItem(row, 2, decimal_table_item(item['quantity'], 0))
+            self.table.setItem(row, 2, quantity_table_item(item['quantity']))
             currency = item.get("asset_currency", "")
             self.table.setItem(row, 3, decimal_table_item(item['avg_price'], 2, currency))
             self.table.setItem(row, 4, decimal_table_item(item['total_cost'], 2, currency))
@@ -145,7 +145,7 @@ class PositionSnapshotsWidget(EntityManagerWidget):
 
         for row, item in enumerate(items):
             self.table.setItem(row, 0, table_item(item['asset_ticker'], item['asset_id']))
-            self.table.setItem(row, 1, decimal_table_item(item['quantity'], 0))
+            self.table.setItem(row, 1, quantity_table_item(item['quantity']))
             currency = item.get("asset_currency", "")
             self.table.setItem(row, 2, decimal_table_item(item['avg_price'], 2, currency))
             self.table.setItem(row, 3, decimal_table_item(item['total_cost'], 2, currency))

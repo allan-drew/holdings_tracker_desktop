@@ -134,7 +134,7 @@ class BrokerNoteForm(BaseFormDialog):
         form_layout.addRow(f"{t('asset')}:", self.asset_combo)
 
     def _setup_financial_fields(self, form_layout):
-        self.quantity_input = self.create_decimal_spinbox(decimals=0, step=1)
+        self.quantity_input = self.create_decimal_spinbox(decimals=6, step=1, trim_zeros=True)
         self.price_input = self.create_decimal_spinbox()
         self.fees_input = self.create_decimal_spinbox()
         self.taxes_input = self.create_decimal_spinbox()

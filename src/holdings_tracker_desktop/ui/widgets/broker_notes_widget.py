@@ -5,7 +5,7 @@ from holdings_tracker_desktop.services.broker_note_service import BrokerNoteServ
 from holdings_tracker_desktop.ui.comboboxes import BrokerNoteYearComboBox
 from holdings_tracker_desktop.ui.core import t, global_signals
 from holdings_tracker_desktop.ui.core.formatters import format_date
-from holdings_tracker_desktop.ui.core.ui_helpers import prepare_table, table_item, decimal_table_item
+from holdings_tracker_desktop.ui.core.ui_helpers import prepare_table, table_item, decimal_table_item, quantity_table_item
 from holdings_tracker_desktop.ui.widgets.entity_manager_widget import EntityManagerWidget
 
 class BrokerNotesWidget(EntityManagerWidget):
@@ -150,7 +150,7 @@ class BrokerNotesWidget(EntityManagerWidget):
             self.table.setItem(row, 0, table_item(format_date(item['date']), item['id']))
             self.table.setItem(row, 1, table_item(t(item['operation'].value.lower())))
             self.table.setItem(row, 2, table_item(item['asset_ticker']))
-            self.table.setItem(row, 3, decimal_table_item(item['quantity'], 0))
+            self.table.setItem(row, 3, quantity_table_item(item['quantity']))
             currency = item.get("asset_currency", "")
             self.table.setItem(row, 4, decimal_table_item(item['price'], 2, currency))
             self.table.setItem(row, 5, decimal_table_item(item['fees'], 2, currency))

@@ -33,3 +33,13 @@ def format_decimal(value: Decimal, decimals: int = 2) -> str:
         text = text.replace(",", "X").replace(".", ",").replace("X", ".")
 
     return text
+
+def format_quantity(value: Decimal, max_decimals: int = 6) -> str:
+    """Format a quantity showing only the decimals it actually has (e.g. 100, 33.5)."""
+    if value is None:
+        value = Decimal("0")
+
+    value = Decimal(value).quantize(Decimal(1).scaleb(-max_decimals)).normalize()
+    decimals = max(-value.as_tuple().exponent, 0)
+
+    return format_decimal(value, decimals)

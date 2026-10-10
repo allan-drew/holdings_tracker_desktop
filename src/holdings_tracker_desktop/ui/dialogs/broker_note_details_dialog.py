@@ -1,5 +1,5 @@
 from holdings_tracker_desktop.ui.core import t
-from holdings_tracker_desktop.ui.core.formatters import format_date, format_datetime, format_decimal
+from holdings_tracker_desktop.ui.core.formatters import format_date, format_datetime, format_decimal, format_quantity
 from holdings_tracker_desktop.ui.dialogs.base_details_dialog import BaseDetailsDialog
 
 class BrokerNoteDetailsDialog(BaseDetailsDialog):
@@ -22,7 +22,7 @@ class BrokerNoteDetailsDialog(BaseDetailsDialog):
             self.add_detail(t("operation"), t(note.operation.value.lower()))
             self.add_detail(t("broker"), note.broker.name)
             self.add_detail(t("asset"), note.asset.ticker)
-            self.add_detail(t("quantity"), format_decimal(note.quantity, 0))
+            self.add_detail(t("quantity"), format_quantity(note.quantity))
             self.add_detail(t("price"), format_decimal(note.price))
             self.add_detail(t("fees"), format_decimal(note.fees))
             self.add_detail(t("taxes"), format_decimal(note.taxes))

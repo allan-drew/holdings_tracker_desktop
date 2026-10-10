@@ -8,6 +8,20 @@ from PySide6.QtWidgets import (
 
 from holdings_tracker_desktop.ui.core import t
 
+class TrimmedDoubleSpinBox(QDoubleSpinBox):
+    """QDoubleSpinBox that hides trailing zeros (100 instead of 100.000000)."""
+
+    def textFromValue(self, value: float) -> str:
+        locale = self.locale()
+        text = locale.toString(value, "f", self.decimals())
+        text = text.replace(locale.groupSeparator(), "")
+
+        decimal_point = locale.decimalPoint()
+        if decimal_point in text:
+            text = text.rstrip("0").rstrip(decimal_point)
+
+        return text
+
 class BaseFormDialog(QDialog):
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -40,9 +54,10 @@ class BaseFormDialog(QDialog):
             minimum: float = 0.0, 
             maximum: float = 10**12,
             step: float = 0.01,
-            default: float = 0.0
+            default: float = 0.0,
+            trim_zeros: bool = False
         ) -> QDoubleSpinBox:
-        spin = QDoubleSpinBox()
+        spin = TrimmedDoubleSpinBox() if trim_zeros else QDoubleSpinBox()
         spin.setDecimals(decimals)
         spin.setMinimum(minimum)
         spin.setMaximum(maximum)

@@ -119,10 +119,10 @@ class AssetEventForm(BaseFormDialog):
         form_layout.addRow(f"{t('target_asset')}:", self.target_asset_combo)
 
     def _setup_financial_fields(self, form_layout):
-        self.factor_input = self.create_decimal_spinbox(decimals=6, step=0.000001)
-        self.quantity_input = self.create_decimal_spinbox(decimals=0, step=1)
+        self.factor_input = self.create_decimal_spinbox(decimals=6, step=0.000001, trim_zeros=True)
+        self.quantity_input = self.create_decimal_spinbox(decimals=6, step=1, trim_zeros=True)
         self.price_input = self.create_decimal_spinbox()
-        self.target_quantity_input = self.create_decimal_spinbox(decimals=0, step=1)
+        self.target_quantity_input = self.create_decimal_spinbox(decimals=6, step=1, trim_zeros=True)
         self.target_unit_price_input = self.create_decimal_spinbox()
         self.residual_value_input = self.create_decimal_spinbox()
 

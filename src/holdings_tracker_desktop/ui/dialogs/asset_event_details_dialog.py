@@ -1,5 +1,5 @@
 from holdings_tracker_desktop.ui.core import t
-from holdings_tracker_desktop.ui.core.formatters import format_date, format_datetime, format_decimal
+from holdings_tracker_desktop.ui.core.formatters import format_date, format_datetime, format_decimal, format_quantity
 from holdings_tracker_desktop.ui.dialogs.base_details_dialog import BaseDetailsDialog
 
 class AssetEventDetailsDialog(BaseDetailsDialog):
@@ -26,7 +26,7 @@ class AssetEventDetailsDialog(BaseDetailsDialog):
                 self.add_detail(t("factor"), format_decimal(event.factor))
 
             if event.quantity:
-                self.add_detail(t("quantity"), format_decimal(event.quantity, 0))
+                self.add_detail(t("quantity"), format_quantity(event.quantity))
 
             if event.price:
                 self.add_detail(t("unit_price"), format_decimal(event.price))
@@ -35,7 +35,7 @@ class AssetEventDetailsDialog(BaseDetailsDialog):
                 self.add_detail(t("target_asset"), event.target_asset.ticker)
 
             if event.target_quantity:
-                self.add_detail(t("target_quantity"), format_decimal(event.target_quantity, 0))
+                self.add_detail(t("target_quantity"), format_quantity(event.target_quantity))
 
             if event.target_unit_price:
                 self.add_detail(t("target_unit_price"), format_decimal(event.target_unit_price))
