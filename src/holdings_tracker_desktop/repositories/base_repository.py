@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy import asc, desc, func
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -109,19 +110,21 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         except SQLAlchemyError as e:
             raise DatabaseException(f"Error fetching all {self.model.__name__}: {str(e)}")
 
-    def create(self, obj: ModelType) -> ModelType:
+    def create(self, obj: ModelType, commit: bool = True) -> ModelType:
         """
         Create a new record.
 
         Args:
             obj: Model instance to create
+            commit: Commit the transaction (False only flushes, so the caller
+                can make more changes and commit them atomically)
 
         Returns:
             Created model instance
         """
         try:
             self.db.add(obj)
-            self.db.commit()
+            self._commit_or_flush(commit)
             self.db.refresh(obj)
             return obj
         except IntegrityError as e:
@@ -131,7 +134,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             self.db.rollback()
             raise DatabaseException(f"Error creating {self.model.__name__}: {str(e)}")
 
-    def create_from_schema(self, schema: CreateSchemaType) -> ModelType:
+    def create_from_schema(self, schema: CreateSchemaType, commit: bool = True) -> ModelType:
         """
         Create a new record from Pydantic schema.
         
@@ -147,20 +150,21 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         else:
             obj = self.model(**schema.model_dump())
 
-        return self.create(obj)
+        return self.create(obj, commit)
 
-    def update(self, obj: ModelType) -> ModelType:
+    def update(self, obj: ModelType, commit: bool = True) -> ModelType:
         """
         Update an existing record.
         
         Args:
             obj: Model instance to update
+            commit: Commit the transaction (False only flushes)
             
         Returns:
             Updated model instance
         """
         try:
-            self.db.commit()
+            self._commit_or_flush(commit)
             self.db.refresh(obj)
             return obj
         except IntegrityError as e:
@@ -170,7 +174,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             self.db.rollback()
             raise DatabaseException(f"Error updating {self.model.__name__}: {str(e)}")
 
-    def update_from_schema(self, id: int, schema: UpdateSchemaType) -> ModelType:
+    def update_from_schema(self, id: int, schema: UpdateSchemaType, commit: bool = True) -> ModelType:
         """
         Update a record from Pydantic schema.
 
@@ -191,14 +195,15 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             for key, value in update_data.items():
                 setattr(obj, key, value)
 
-        return self.update(obj)
+        return self.update(obj, commit)
     
-    def delete(self, id: int) -> bool:
+    def delete(self, id: int, commit: bool = True) -> bool:
         """
         Delete a record by ID.
 
         Args:
             id: Record ID to delete
+            commit: Commit the transaction (False only flushes)
 
         Returns:
             True if deleted, False if not found
@@ -212,7 +217,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                 return False
 
             self.db.delete(obj)
-            self.db.commit()
+            self._commit_or_flush(commit)
             return True
         except SQLAlchemyError as e:
             self.db.rollback()
@@ -381,6 +386,25 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         except SQLAlchemyError as e:
             self.db.rollback()
             raise DatabaseException(f"Error saving changes: {str(e)}")
+
+    @contextmanager
+    def atomic(self):
+        """
+        Commit the writes made inside the block (with commit=False) as one
+        transaction, or roll all of them back if any of them fails.
+        """
+        try:
+            yield
+            self.save_changes()
+        except Exception:
+            self.rollback()
+            raise
+
+    def _commit_or_flush(self, commit: bool) -> None:
+        if commit:
+            self.db.commit()
+        else:
+            self.db.flush()
 
     def rollback(self) -> None:
         """

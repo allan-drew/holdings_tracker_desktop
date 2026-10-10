@@ -12,6 +12,10 @@ from holdings_tracker_desktop.repositories.base_repository import BaseRepository
 from holdings_tracker_desktop.schemas.position_snapshot import (
   PositionSnapshotCreate, PositionSnapshotUpdate, PositionSnapshotResponse
 )
+from holdings_tracker_desktop.utils.exceptions import ValidationException
+
+# Tolerance for quantities stored as Numeric(20, 6)
+QUANTITY_TOLERANCE = Decimal("0.000001")
 
 class PositionSnapshotService:
     def __init__(self, db: Session):
@@ -184,9 +188,17 @@ class PositionSnapshotService:
 
         return query, total_cost
 
-    def rebuild_from(self, asset_id: int, from_date: Date) -> None:
+    def rebuild_from(self, asset_id: int, from_date: Date, commit: bool = True) -> None:
         """
         Rebuild incremental snapshots for a single asset starting from a given date.
+
+        Args:
+            commit: Commit the rebuild. Pass False when the caller commits it
+                together with the change that triggered it; on error the caller
+                must roll back.
+
+        Raises:
+            ValidationException: If a SELL note exceeds the position at its date.
 
         Note:
             This method only rebuilds snapshots for the given asset_id.
@@ -199,7 +211,11 @@ class PositionSnapshotService:
             qty, cost = self._load_state_before(asset_id, from_date)
             timeline = self._load_timeline(asset_id, from_date)
             self._build_from_timeline(asset_id, timeline, qty, cost)
-            self.repository.save_changes()
+
+            if commit:
+                self.repository.save_changes()
+            else:
+                self.db.flush()
         except Exception:
             self.repository.rollback()
             raise
@@ -363,7 +379,17 @@ class PositionSnapshotService:
                 total_cost + note.total_value
             )
 
-        if note.operation == OperationType.SELL and quantity > 0:
+        if note.operation == OperationType.SELL:
+            if note.quantity > quantity + QUANTITY_TOLERANCE:
+                ticker = note.asset.ticker if note.asset else note.asset_id
+                raise ValidationException(
+                    f"Sell of {note.quantity:f} {ticker} on {note.date.isoformat()} "
+                    f"exceeds the position of {quantity:f} at that date"
+                )
+
+            if quantity <= 0:
+                return Decimal("0"), Decimal("0")
+
             avg_price = total_cost / quantity
             new_quantity = quantity - note.quantity
             new_cost = total_cost - (avg_price * note.quantity)

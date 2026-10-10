@@ -19,12 +19,13 @@ class AssetEventService:
 
     def create(self, data: AssetEventCreate) -> AssetEventResponse:
         """Create new AssetEvent with validation"""
-        asset_event = self.repository.create_from_schema(data)
+        with self.repository.atomic():
+            asset_event = self.repository.create_from_schema(data, commit=False)
 
-        self._rebuild_positions_for_event(
-            event=asset_event,
-            from_date=asset_event.date
-        )
+            self._rebuild_positions_for_event(
+                event=asset_event,
+                from_date=asset_event.date
+            )
 
         return AssetEventResponse.model_validate(asset_event)
 
@@ -39,14 +40,15 @@ class AssetEventService:
 
         old_date = existing.date
 
-        updated = self.repository.update_from_schema(asset_event_id, data)
+        with self.repository.atomic():
+            updated = self.repository.update_from_schema(asset_event_id, data, commit=False)
 
-        rebuild_from_date = min(old_date, updated.date)
+            rebuild_from_date = min(old_date, updated.date)
 
-        self._rebuild_positions_for_event(
-            event=updated,
-            from_date=rebuild_from_date
-        )
+            self._rebuild_positions_for_event(
+                event=updated,
+                from_date=rebuild_from_date
+            )
 
         return AssetEventResponse.model_validate(updated)
 
@@ -56,13 +58,14 @@ class AssetEventService:
 
         from_date = asset_event.date
 
-        deleted = self.repository.delete(asset_event_id)
+        with self.repository.atomic():
+            deleted = self.repository.delete(asset_event_id, commit=False)
 
-        if deleted:
-            self._rebuild_positions_for_event(
-                event=asset_event,
-                from_date=from_date
-            )
+            if deleted:
+                self._rebuild_positions_for_event(
+                    event=asset_event,
+                    from_date=from_date
+                )
 
         return deleted
 
@@ -111,12 +114,14 @@ class AssetEventService:
 
             For this reason, snapshot rebuild must be triggered explicitly
             for both assets.
-        """
-        self.repository.db.flush()
 
+            Snapshots are only flushed; the caller commits them together with
+            the event change.
+        """
         self.position_snapshot_service.rebuild_from(
             asset_id=event.asset_id,
-            from_date=from_date
+            from_date=from_date,
+            commit=False
         )
 
         if (
@@ -125,7 +130,6 @@ class AssetEventService:
         ):
             self.position_snapshot_service.rebuild_from(
                 asset_id=event.target_asset_id,
-                from_date=from_date
+                from_date=from_date,
+                commit=False
             )
-
-        self.repository.save_changes()

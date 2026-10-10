@@ -21,12 +21,14 @@ class BrokerNoteService:
 
     def create(self, data: BrokerNoteCreate) -> BrokerNoteResponse:
         """Create new BrokerNote with validation"""
-        broker_note = self.repository.create_from_schema(data)
+        with self.repository.atomic():
+            broker_note = self.repository.create_from_schema(data, commit=False)
 
-        self.position_snapshot_service.rebuild_from(
-            asset_id=broker_note.asset_id,
-            from_date=broker_note.date
-        )
+            self.position_snapshot_service.rebuild_from(
+                asset_id=broker_note.asset_id,
+                from_date=broker_note.date,
+                commit=False
+            )
 
         return BrokerNoteResponse.model_validate(broker_note)
 
@@ -42,14 +44,16 @@ class BrokerNoteService:
         old_date = existing.date
         asset_id = existing.asset_id
 
-        updated = self.repository.update_from_schema(broker_note_id, data)
+        with self.repository.atomic():
+            updated = self.repository.update_from_schema(broker_note_id, data, commit=False)
 
-        rebuild_from_date = min(old_date, updated.date)
+            rebuild_from_date = min(old_date, updated.date)
 
-        self.position_snapshot_service.rebuild_from(
-            asset_id=asset_id,
-            from_date=rebuild_from_date
-        )
+            self.position_snapshot_service.rebuild_from(
+                asset_id=asset_id,
+                from_date=rebuild_from_date,
+                commit=False
+            )
 
         return BrokerNoteResponse.model_validate(updated)
 
@@ -60,13 +64,15 @@ class BrokerNoteService:
         asset_id = broker_note.asset_id
         from_date = broker_note.date
 
-        deleted = self.repository.delete(broker_note_id)
+        with self.repository.atomic():
+            deleted = self.repository.delete(broker_note_id, commit=False)
 
-        if deleted:
-            self.position_snapshot_service.rebuild_from(
-                asset_id=asset_id,
-                from_date=from_date
-            )
+            if deleted:
+                self.position_snapshot_service.rebuild_from(
+                    asset_id=asset_id,
+                    from_date=from_date,
+                    commit=False
+                )
 
         return deleted
 
