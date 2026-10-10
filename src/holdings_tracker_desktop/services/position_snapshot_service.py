@@ -83,6 +83,8 @@ class PositionSnapshotService:
                 (PositionSnapshot.id == subquery.c.max_id)
             )
             .join(Asset, Asset.id == PositionSnapshot.asset_id)
+            # Positions closed by the end of the year are not holdings anymore.
+            .filter(PositionSnapshot.quantity > 0)
         )
 
         if asset_type_id is not None:

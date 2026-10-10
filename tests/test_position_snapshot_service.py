@@ -153,3 +153,17 @@ def test_allocation_is_filtered_by_currency(db, refs, make_asset):
 
     assert by_brl == [{"label": "BRL3", "value": 100.0}]
     assert by_usd == [{"label": "Unclassified", "value": 200.0}]
+
+
+def test_yearly_positions_hide_closed_positions(db, refs, make_asset):
+    from holdings_tracker_desktop.services.position_snapshot_service import PositionSnapshotService
+
+    held = make_asset("HELD3")
+    closed = make_asset("SOLD3")
+    add_note(db, refs, held, OperationType.BUY, date(2024, 1, 1), "10")
+    add_note(db, refs, closed, OperationType.BUY, date(2024, 1, 1), "10")
+    add_note(db, refs, closed, OperationType.SELL, date(2024, 6, 1), "10")
+
+    tickers = [p["asset_ticker"] for p in PositionSnapshotService(db).list_all_for_ui_by_year(2024)]
+
+    assert tickers == ["HELD3"]

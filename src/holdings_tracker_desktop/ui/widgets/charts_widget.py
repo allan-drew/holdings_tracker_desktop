@@ -41,6 +41,7 @@ class ChartsWidget(TranslatableWidget):
         self._data_loaded = False
 
         global_signals.asset_types_updated.connect(self.refresh_asset_types_menu)
+        global_signals.assets_updated.connect(self.refresh_currencies_menu)
         global_signals.asset_events_updated.connect(self.refresh_years_menu)
         global_signals.broker_notes_updated.connect(self.refresh_years_menu)
 
@@ -166,7 +167,7 @@ class ChartsWidget(TranslatableWidget):
 
     def refresh_currencies_menu(self):
         menu = self.menus.get("currency")
-        if not menu:
+        if not menu or not self._data_loaded:
             return
 
         menu.clear()

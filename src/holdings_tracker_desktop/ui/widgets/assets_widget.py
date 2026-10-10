@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QDialog, QHeaderView
 from holdings_tracker_desktop.database import get_db
 from holdings_tracker_desktop.services.asset_service import AssetService
 from holdings_tracker_desktop.ui.comboboxes import AssetTypeComboBox
-from holdings_tracker_desktop.ui.core import t
+from holdings_tracker_desktop.ui.core import t, global_signals
 from holdings_tracker_desktop.ui.core.ui_helpers import prepare_table, table_item
 from holdings_tracker_desktop.ui.widgets.entity_manager_widget import EntityManagerWidget
 
@@ -57,6 +57,7 @@ class AssetsWidget(EntityManagerWidget):
 
         if form.exec() == QDialog.Accepted:
             self.load_data()
+            global_signals.assets_updated.emit()
 
     def open_edit_form(self, selected_id):
         from holdings_tracker_desktop.ui.forms.asset_form import AssetForm
@@ -79,6 +80,7 @@ class AssetsWidget(EntityManagerWidget):
 
                 if form.exec() == QDialog.Accepted:
                     self.load_data()
+                    global_signals.assets_updated.emit()
 
         except Exception as e:
             self.show_error(f"Error opening edit form: {str(e)}")
@@ -95,6 +97,7 @@ class AssetsWidget(EntityManagerWidget):
 
                 if deleted:
                     self.load_data()
+                    global_signals.assets_updated.emit()
                 else:
                     self.show_error(f"Delete failed")
 

@@ -2,7 +2,7 @@ from PySide6.QtWidgets import QDialog
 
 from holdings_tracker_desktop.database import get_db
 from holdings_tracker_desktop.services.asset_ticker_history_service import AssetTickerHistoryService
-from holdings_tracker_desktop.ui.core import t
+from holdings_tracker_desktop.ui.core import t, global_signals
 from holdings_tracker_desktop.ui.core.formatters import format_date
 from holdings_tracker_desktop.ui.core.ui_helpers import prepare_table, table_item
 from holdings_tracker_desktop.ui.widgets.entity_manager_widget import EntityManagerWidget
@@ -55,6 +55,7 @@ class AssetTickerHistoriesWidget(EntityManagerWidget):
 
         if form.exec() == QDialog.Accepted:
             self.load_data()
+            global_signals.assets_updated.emit()
 
     def delete_record(self, selected_id):
         try:
@@ -68,6 +69,7 @@ class AssetTickerHistoriesWidget(EntityManagerWidget):
 
                 if deleted:
                     self.load_data()
+                    global_signals.assets_updated.emit()
                 else:
                     self.show_error(f"Delete failed")
 
