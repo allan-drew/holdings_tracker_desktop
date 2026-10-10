@@ -20,6 +20,31 @@ REQUIRED_FIELDS_BY_EVENT_TYPE: dict[str, set[str]] = {
     }
 }
 
+def _validate_fields_by_event_type(event: "AssetEventBase") -> None:
+    required_fields = REQUIRED_FIELDS_BY_EVENT_TYPE.get(
+        event.event_type.value, set()
+    )
+
+    missing_fields = [
+        field
+        for field in required_fields
+        if getattr(event, field) is None
+    ]
+
+    if missing_fields:
+        raise ValueError(
+            f"Missing required fields for event_type={event.event_type.value}: "
+            f"{', '.join(missing_fields)}"
+        )
+
+    # Position rebuild divides quantity by factor, so a split (1:N) must be
+    # entered as 1/N (< 1) and a reverse split (N:1) as N (> 1).
+    if event.event_type == AssetEventType.SPLIT and event.factor >= 1:
+        raise ValueError("Split factor must be less than 1 (e.g. 1:10 -> 0.1)")
+
+    if event.event_type == AssetEventType.REVERSE_SPLIT and event.factor <= 1:
+        raise ValueError("Reverse split factor must be greater than 1 (e.g. 10:1 -> 10)")
+
 class AssetEventBase(BaseSchema):
     asset_id: int = Field(..., gt=0)
     event_type: AssetEventType
@@ -38,23 +63,8 @@ class AssetEventBase(BaseSchema):
 class AssetEventCreate(AssetEventBase):
 
     @model_validator(mode="after")
-    def validate_required_fields_by_event_type(self):
-        required_fields = REQUIRED_FIELDS_BY_EVENT_TYPE.get(
-            self.event_type.value, set()
-        )
-
-        missing_fields = [
-            field
-            for field in required_fields
-            if getattr(self, field) is None
-        ]
-
-        if missing_fields:
-            raise ValueError(
-                f"Missing required fields for event_type={self.event_type.value}: "
-                f"{', '.join(missing_fields)}"
-            )
-        
+    def validate_fields_by_event_type(self):
+        _validate_fields_by_event_type(self)
         return self
 
     model_config = {
@@ -63,29 +73,14 @@ class AssetEventCreate(AssetEventBase):
 
 class AssetEventUpdate(AssetEventBase):
 
-  @model_validator(mode="after")
-  def validate_required_fields_by_event_type(self):
-      required_fields = REQUIRED_FIELDS_BY_EVENT_TYPE.get(
-          self.event_type.value, set()
-      )
+    @model_validator(mode="after")
+    def validate_fields_by_event_type(self):
+        _validate_fields_by_event_type(self)
+        return self
 
-      missing_fields = [
-          field
-          for field in required_fields
-          if getattr(self, field) is None
-      ]
-
-      if missing_fields:
-          raise ValueError(
-              f"Missing required fields for event_type={self.event_type.value}: "
-              f"{', '.join(missing_fields)}"
-          )
-      
-      return self
-
-  model_config = {
-      "extra": "forbid"
-  }
+    model_config = {
+        "extra": "forbid"
+    }
 
 class AssetEventResponse(AssetEventBase, AuditableSchema):
     model_config = {

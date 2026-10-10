@@ -119,7 +119,7 @@ class AssetEventForm(BaseFormDialog):
         form_layout.addRow(f"{t('target_asset')}:", self.target_asset_combo)
 
     def _setup_financial_fields(self, form_layout):
-        self.factor_input = self.create_decimal_spinbox()
+        self.factor_input = self.create_decimal_spinbox(decimals=6, step=0.000001)
         self.quantity_input = self.create_decimal_spinbox(decimals=0, step=1)
         self.price_input = self.create_decimal_spinbox()
         self.target_quantity_input = self.create_decimal_spinbox(decimals=0, step=1)
@@ -165,6 +165,9 @@ class AssetEventForm(BaseFormDialog):
             case AssetEventType.SPLIT | AssetEventType.REVERSE_SPLIT:
                 self._form_layout.setRowVisible(self.factor_input, True)
                 self.factor_input.setEnabled(True)
+                self.factor_input.setToolTip(
+                    t(f"factor_hint_{event_type.value.lower()}")
+                )
 
             case AssetEventType.AMORTIZATION | AssetEventType.SUBSCRIPTION:
                 self._form_layout.setRowVisible(self.quantity_input, True)
