@@ -18,6 +18,8 @@ class BaseYearComboBox(BaseComboBox):
         pass
 
     def reload(self):
+        selected_year = self.currentData()
+
         self.blockSignals(True)
         self.clear()
 
@@ -26,7 +28,12 @@ class BaseYearComboBox(BaseComboBox):
         for year in self._load_years():
             self.addItem(str(year), year)
 
-        if self.count() > 1:
+        # Keep the year the user was looking at; fall back to the most recent one.
+        selected_index = self.findData(selected_year) if selected_year is not None else -1
+
+        if selected_index > 0:
+            self.setCurrentIndex(selected_index)
+        elif self.count() > 1:
             self.setCurrentIndex(1)
 
         self.blockSignals(False)
