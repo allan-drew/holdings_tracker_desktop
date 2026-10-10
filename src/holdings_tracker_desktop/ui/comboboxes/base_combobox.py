@@ -35,6 +35,28 @@ class BaseComboBox(QComboBox):
         completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.setCompleter(completer)
 
+        self.lineEdit().editingFinished.connect(self._sync_index_with_text)
+
+    def currentData(self, role=Qt.UserRole):
+        # Typed text that was never confirmed would otherwise leave the
+        # previously selected item as the current data.
+        self._sync_index_with_text()
+        return super().currentData(role)
+
+    def _sync_index_with_text(self):
+        """Select the item matching the typed text (case-insensitive), or the placeholder."""
+        if not self.isEditable() or self.count() == 0:
+            return
+
+        index = self.findText(self.currentText().strip(), Qt.MatchFixedString)
+        if index < 0:
+            index = 0
+
+        if index != self.currentIndex():
+            self.setCurrentIndex(index)
+        elif self.currentText() != self.itemText(index):
+            self.setEditText(self.itemText(index))
+
     def _setup_placeholder(self):
         self.clear()
         self.addItem(t(self.placeholder_key), None)
