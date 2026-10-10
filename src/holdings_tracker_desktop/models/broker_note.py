@@ -104,7 +104,14 @@ class BrokerNote(AuditableModel):
 
     @property
     def total_value(self):
-        return (self.quantity * self.price) + self.fees + self.taxes
+        """Amount paid on a BUY (costs added) or received on a SELL (costs deducted)."""
+        gross = self.quantity * self.price
+        costs = (self.fees or 0) + (self.taxes or 0)
+
+        if self.operation == OperationType.SELL:
+            return gross - costs
+
+        return gross + costs
 
     def to_ui_dict(self) -> dict:
         """Optimized for PySide6 table widgets"""

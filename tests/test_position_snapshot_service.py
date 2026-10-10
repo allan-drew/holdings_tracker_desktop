@@ -119,3 +119,13 @@ def test_total_conversion_moves_position_to_target(db, refs, make_asset):
     assert last_snapshot(db, source).quantity == Decimal("0")
     assert last_snapshot(db, target).quantity == Decimal("50")
     assert last_snapshot(db, target).total_cost == Decimal("1000")
+
+
+def test_total_value_adds_costs_on_buy_and_deducts_them_on_sell():
+    buy = BrokerNote(operation=OperationType.BUY, quantity=Decimal("10"), price=Decimal("5"),
+                     fees=Decimal("1"), taxes=Decimal("0.5"))
+    sell = BrokerNote(operation=OperationType.SELL, quantity=Decimal("10"), price=Decimal("5"),
+                      fees=Decimal("1"), taxes=Decimal("0.5"))
+
+    assert buy.total_value == Decimal("51.5")
+    assert sell.total_value == Decimal("48.5")
