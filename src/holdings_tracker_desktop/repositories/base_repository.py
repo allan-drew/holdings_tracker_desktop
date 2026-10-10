@@ -185,7 +185,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         # Check if model has update_from_schema method
         if hasattr(obj, 'update_from_schema'):
-            obj.update_from_schema(schema.model_dump())
+            obj.update_from_schema(schema.model_dump(exclude_unset=True))
         else:
             update_data = schema.model_dump(exclude_unset=True)
             for key, value in update_data.items():
