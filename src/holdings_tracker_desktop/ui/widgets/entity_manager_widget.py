@@ -93,10 +93,10 @@ class EntityManagerWidget(TranslatableWidget):
             self.open_details(selected_id)
 
     def show_warning(self, message: str):
-        QMessageBox.warning(self, "Warning", message)
+        QMessageBox.warning(self, t("warning"), message)
 
     def show_error(self, message: str):
-        QMessageBox.critical(self, "Error", message)
+        QMessageBox.critical(self, t("error"), message)
 
     def ask_confirmation(self, title: str, message: str) -> bool:
         dialog = ConfirmDialog(

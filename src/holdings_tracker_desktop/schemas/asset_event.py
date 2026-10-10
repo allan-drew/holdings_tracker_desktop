@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Optional
 
 from pydantic import Field, model_validator
+from pydantic_core import PydanticCustomError
 from .base import BaseSchema, AuditableSchema
 from ..models.asset_event import AssetEventType
 
@@ -32,18 +33,23 @@ def _validate_fields_by_event_type(event: "AssetEventBase") -> None:
     ]
 
     if missing_fields:
-        raise ValueError(
-            f"Missing required fields for event_type={event.event_type.value}: "
-            f"{', '.join(missing_fields)}"
+        raise PydanticCustomError(
+            "missing_event_fields",
+            "Missing required fields for event_type={event_type}: {fields}",
+            {"event_type": event.event_type.value, "fields": ", ".join(sorted(missing_fields))}
         )
 
     # Position rebuild divides quantity by factor, so a split (1:N) must be
     # entered as 1/N (< 1) and a reverse split (N:1) as N (> 1).
     if event.event_type == AssetEventType.SPLIT and event.factor >= 1:
-        raise ValueError("Split factor must be less than 1 (e.g. 1:10 -> 0.1)")
+        raise PydanticCustomError(
+            "split_factor_range", "Split factor must be less than 1 (e.g. 1:10 -> 0.1)"
+        )
 
     if event.event_type == AssetEventType.REVERSE_SPLIT and event.factor <= 1:
-        raise ValueError("Reverse split factor must be greater than 1 (e.g. 10:1 -> 10)")
+        raise PydanticCustomError(
+            "reverse_split_factor_range", "Reverse split factor must be greater than 1 (e.g. 10:1 -> 10)"
+        )
 
 class AssetEventBase(BaseSchema):
     asset_id: int = Field(..., gt=0)

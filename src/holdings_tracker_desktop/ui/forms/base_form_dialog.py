@@ -7,6 +7,23 @@ from PySide6.QtWidgets import (
 )
 
 from holdings_tracker_desktop.ui.core import t
+from holdings_tracker_desktop.ui.core.translations import TRANSLATIONS
+
+# Schema fields whose label key differs from the field name without "_id".
+FIELD_LABEL_KEYS = {
+    "type_id": "type",
+    "price": "unit_price",
+}
+
+# Pydantic error types that just mean "fill this field in".
+REQUIRED_ERROR_TYPES = {
+    "missing", "int_type", "int_parsing", "decimal_type", "decimal_parsing",
+    "date_type", "string_type", "string_too_short", "enum",
+}
+
+ERROR_TYPE_KEYS = {
+    "string_too_long": "validation_too_long",
+}
 
 class TrimmedDoubleSpinBox(QDoubleSpinBox):
     """QDoubleSpinBox that hides trailing zeros (100 instead of 100.000000)."""
@@ -31,22 +48,49 @@ class BaseFormDialog(QDialog):
         messages = []
 
         for err in error.errors():
-            field = ".".join(map(str, err["loc"]))
-            msg = err["msg"]
-            messages.append(f"{field}: {msg}")
+            message = self._translate_validation_message(err)
+            label = self._field_label(err["loc"])
+            messages.append(f"{label}: {message}" if label else message)
 
         QMessageBox.warning(
             self,
-            "Validation Error",
+            t("validation_error"),
             "\n".join(messages)
         )
 
     def handle_generic_error(self, error: Exception):
         QMessageBox.critical(
             self,
-            "Error",
+            t("error"),
             str(error)
         )
+
+    def _field_label(self, loc: tuple) -> str:
+        if not loc:
+            return ""
+
+        field = str(loc[-1])
+        return t(FIELD_LABEL_KEYS.get(field, field.removesuffix("_id")))
+
+    def _translate_validation_message(self, err: dict) -> str:
+        error_type = err["type"]
+
+        if error_type in REQUIRED_ERROR_TYPES:
+            key = "validation_required"
+        else:
+            key = ERROR_TYPE_KEYS.get(error_type, f"validation_{error_type}")
+
+        if key in TRANSLATIONS["en_US"]:
+            ctx = dict(err.get("ctx", {}))
+
+            if "fields" in ctx:
+                ctx["fields"] = ", ".join(
+                    self._field_label((field.strip(),)) for field in ctx["fields"].split(",")
+                )
+
+            return t(key).format(**ctx)
+
+        return err["msg"].removeprefix("Value error, ")
 
     def create_decimal_spinbox(
             self, 
