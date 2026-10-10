@@ -70,13 +70,17 @@ class AssetEventService:
         self,
         asset_id: int,
         skip: int = 0, 
-        limit: int = 100
+        limit: int | None = None
     ) -> List[dict]:
         """Get AssetEvents already formatted for UI"""
-        asset_events = sorted(
-            self.repository.find_all_by(asset_id=asset_id, skip=skip, limit=limit),
-            key=lambda s: s.date,
-            reverse=True
+        asset_events = (
+            self.repository.db
+            .query(AssetEvent)
+            .filter(AssetEvent.asset_id == asset_id)
+            .order_by(AssetEvent.date.desc(), AssetEvent.id.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
         )
         return [ae.to_ui_dict() for ae in asset_events]
 

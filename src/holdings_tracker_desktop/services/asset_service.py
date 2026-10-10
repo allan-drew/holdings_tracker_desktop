@@ -51,7 +51,7 @@ class AssetService:
     def list_all_for_ui(
         self, 
         skip: int = 0, 
-        limit: int = 100,
+        limit: int | None = None,
         order_by: str = "ticker",
         asset_type_id: int | None = None
     ) -> List[dict]:

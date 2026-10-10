@@ -60,13 +60,17 @@ class AssetTickerHistoryService:
         self,
         asset_id: int,
         skip: int = 0, 
-        limit: int = 100
+        limit: int | None = None
     ) -> List[dict]:
         """Get AssetTickerHistories already formatted for UI"""
-        asset_ticker_histories = sorted(
-            self.repository.find_all_by(asset_id=asset_id, skip=skip, limit=limit),
-            key=lambda s: s.change_date,
-            reverse=True
+        asset_ticker_histories = (
+            self.repository.db
+            .query(AssetTickerHistory)
+            .filter(AssetTickerHistory.asset_id == asset_id)
+            .order_by(AssetTickerHistory.change_date.desc(), AssetTickerHistory.id.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
         )
         return [ath.to_ui_dict() for ath in asset_ticker_histories]
 

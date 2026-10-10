@@ -77,7 +77,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def get_all(
         self, 
         skip: int = 0, 
-        limit: int = 100,
+        limit: Optional[int] = None,
         order_by: Optional[str] = None,
         descending: bool = False
     ) -> List[ModelType]:
@@ -86,7 +86,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         Args:
             skip: Number of records to skip
-            limit: Maximum number of records to return
+            limit: Maximum number of records to return (None for no limit)
             order_by: Column name to order by (defaults to 'id')
             descending: Order descending if True
 
@@ -285,7 +285,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def find_all_by(
         self, 
         skip: int = 0, 
-        limit: int = 100,
+        limit: Optional[int] = None,
         **filters
     ) -> List[ModelType]:
         """
@@ -293,7 +293,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         Args:
             skip: Number of records to skip
-            limit: Maximum number of records to return
+            limit: Maximum number of records to return (None for no limit)
             **filters: Keyword arguments for filtering
 
         Returns:
@@ -310,7 +310,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         query_str: Optional[str] = None,
         search_fields: Optional[List[str]] = None,
         skip: int = 0,
-        limit: int = 100,
+        limit: Optional[int] = None,
         **additional_filters
     ) -> List[ModelType]:
         """
@@ -320,7 +320,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             query_str: Search query string
             search_fields: List of field names to search in
             skip: Number of records to skip
-            limit: Maximum number of records to return
+            limit: Maximum number of records to return (None for no limit)
             **additional_filters: Additional filter criteria
 
         Returns:

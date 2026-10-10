@@ -74,7 +74,7 @@ class BrokerNoteService:
         self,
         year: int,
         skip: int = 0,
-        limit: int = 100,
+        limit: int | None = None,
         order_by: Date = "date",
         descending: bool = True
     ) -> List[dict]:

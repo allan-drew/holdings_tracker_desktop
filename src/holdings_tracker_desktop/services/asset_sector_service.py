@@ -48,7 +48,7 @@ class AssetSectorService:
     def list_all_for_ui(
         self, 
         skip: int = 0, 
-        limit: int = 100,
+        limit: int | None = None,
         order_by: str = "name",
         descending: bool = False
     ) -> List[dict]:

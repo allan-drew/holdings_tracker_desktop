@@ -35,7 +35,7 @@ class PositionSnapshotService:
         self,
         asset_id: int,
         skip: int = 0,
-        limit: int = 150
+        limit: int | None = None
     ) -> List[dict]:
         """Get PositionSnapshots already formatted for UI"""
         snapshots = (
@@ -57,7 +57,7 @@ class PositionSnapshotService:
         year: int,
         asset_type_id: int | None = None,
         skip: int = 0,
-        limit: int = 150
+        limit: int | None = None
     ) -> List[dict]:
         """Get PositionSnapshots already formatted for UI, optionally filtered by asset type"""
         subquery = (
