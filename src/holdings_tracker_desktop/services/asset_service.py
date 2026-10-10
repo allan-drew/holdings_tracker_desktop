@@ -19,7 +19,7 @@ class AssetService:
 
     def create(self, data: AssetCreate) -> AssetResponse:
         """Create new Asset with validation"""
-        self._ensure_ticker_is_unique(data.ticker)
+        self.ensure_ticker_is_unique(data.ticker)
 
         asset = self.repository.create_from_schema(data)
         return AssetResponse.model_validate(asset)
@@ -74,7 +74,7 @@ class AssetService:
         """Count all Assets"""
         return self.repository.count()
 
-    def _ensure_ticker_is_unique(
+    def ensure_ticker_is_unique(
         self,
         ticker: str,
         exclude_id: int | None = None

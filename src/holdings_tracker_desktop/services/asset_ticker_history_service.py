@@ -7,6 +7,8 @@ from holdings_tracker_desktop.repositories.base_repository import BaseRepository
 from holdings_tracker_desktop.schemas.asset_ticker_history import (
   AssetTickerHistoryCreate, AssetTickerHistoryUpdate, AssetTickerHistoryResponse
 )
+from holdings_tracker_desktop.services.asset_service import AssetService
+from holdings_tracker_desktop.utils.exceptions import ConflictException
 
 class AssetTickerHistoryService:
     def __init__(self, db: Session):
@@ -33,6 +35,8 @@ class AssetTickerHistoryService:
         if asset.ticker == data.new_ticker:
             raise ValueError("New ticker must be different from current ticker")
 
+        AssetService(db).ensure_ticker_is_unique(data.new_ticker, exclude_id=asset.id)
+
         history = AssetTickerHistory(
             asset=asset,
             old_ticker=asset.ticker,
@@ -52,9 +56,33 @@ class AssetTickerHistoryService:
         asset_ticker_history = self.repository.get_or_raise(asset_ticker_history_id)
         return AssetTickerHistoryResponse.model_validate(asset_ticker_history)
 
-    def delete(self, asset_id: int) -> bool:
-        """Delete AssetTickerHistory"""
-        return self.repository.delete(asset_id)
+    def delete(self, asset_ticker_history_id: int) -> bool:
+        """
+        Delete the most recent ticker change of an asset and restore its
+        previous ticker. Older changes cannot be deleted, since later changes
+        were made on top of them.
+        """
+        db = self.repository.db
+        history = self.repository.get_or_raise(asset_ticker_history_id)
+
+        latest = (
+            db.query(AssetTickerHistory)
+            .filter(AssetTickerHistory.asset_id == history.asset_id)
+            .order_by(AssetTickerHistory.change_date.desc(), AssetTickerHistory.id.desc())
+            .first()
+        )
+
+        if latest.id != history.id:
+            raise ConflictException("Only the most recent ticker change can be deleted")
+
+        if history.old_ticker:
+            AssetService(db).ensure_ticker_is_unique(history.old_ticker, exclude_id=history.asset_id)
+
+        with self.repository.atomic():
+            if history.old_ticker:
+                history.asset.ticker = history.old_ticker
+
+            return self.repository.delete(asset_ticker_history_id, commit=False)
 
     def list_all_for_ui(
         self,
