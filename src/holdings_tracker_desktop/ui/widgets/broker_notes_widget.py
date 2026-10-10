@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QDialog, QHeaderView
 
 from holdings_tracker_desktop.database import get_db
+from holdings_tracker_desktop.models.broker_note import OperationType
 from holdings_tracker_desktop.services.broker_note_service import BrokerNoteService
 from holdings_tracker_desktop.ui.comboboxes import BrokerNoteYearComboBox
 from holdings_tracker_desktop.ui.core import t, global_signals
@@ -157,14 +158,22 @@ class BrokerNotesWidget(EntityManagerWidget):
             self.table.setItem(row, 6, decimal_table_item(item['total_value'], 2, currency))
 
         year = self.year_filter.currentData()
-        if year is not None and items:
+        if year is None:
+            return
+
+        # Buys and sells are totaled separately: their sum has no meaning.
+        for operation in OperationType:
+            operation_items = [item for item in items if item['operation'] == operation]
+            if not operation_items:
+                continue
+
             self.add_grouped_total_rows(
-                items,
+                operation_items,
                 group_by_key="asset_currency",
                 value_key="total_value",
                 value_column=6,
                 label_column=0,
-                label_text=t("total"),
+                label_text=t(f"total_{operation.value.lower()}"),
                 decimals=2,
                 currency_key="asset_currency",
             )
