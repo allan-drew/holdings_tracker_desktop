@@ -256,11 +256,14 @@ class PositionSnapshotService:
 
         timeline = notes + events
 
-        # AssetEvent takes precedence over BrokerNote
+        # Same-day order: AssetEvents first, then BUY notes before SELL notes
+        # (so day trades never sell from an empty position), then by id.
         timeline.sort(
             key=lambda x: (
                 x.date,
-                0 if isinstance(x, AssetEvent) else 1
+                0 if isinstance(x, AssetEvent) else 1,
+                1 if isinstance(x, BrokerNote) and x.operation == OperationType.SELL else 0,
+                x.id
             )
         )
 
