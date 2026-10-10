@@ -58,6 +58,10 @@ def run_migrations_online() -> None:
     connectable = engine
 
     with connectable.connect() as connection:
+        if connection.dialect.name == "sqlite":
+            # Batch migrations recreate tables, which fails with foreign keys on.
+            connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+
         context.configure(
             connection=connection, target_metadata=target_metadata
         )

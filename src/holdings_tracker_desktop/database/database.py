@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from holdings_tracker_desktop.config import config
@@ -14,6 +14,14 @@ engine = create_engine(
         else {}
     ),
 )
+
+if config.database_url.startswith("sqlite"):
+    # SQLite ignores foreign keys unless enabled on every connection.
+    @event.listens_for(engine, "connect")
+    def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 SessionLocal = sessionmaker(
     autocommit=False,

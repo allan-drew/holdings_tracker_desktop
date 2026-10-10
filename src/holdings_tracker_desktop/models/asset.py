@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from sqlalchemy import String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from .asset_event import AssetEventType
 from .base import AuditableModel
 
 if TYPE_CHECKING:
@@ -135,6 +136,18 @@ class Asset(AuditableModel):
             return (
                 False, 
                 f"Cannot delete '{self.ticker}' because it has {count} associated broker notes"
+            )
+
+        # Deleting either side of a conversion would leave the other asset's
+        # position built from an event that no longer exists (or has no target).
+        conversions = (
+            self.events.filter_by(event_type=AssetEventType.TOTAL_CONVERSION).count()
+            + len(self.events_as_target)
+        )
+        if conversions > 0:
+            return (
+                False,
+                f"Cannot delete '{self.ticker}' because it has {conversions} associated conversion events"
             )
 
         return True, ""
