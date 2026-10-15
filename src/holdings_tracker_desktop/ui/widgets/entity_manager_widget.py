@@ -116,9 +116,12 @@ class EntityManagerWidget(TranslatableWidget):
 
     def delete_with_confirmation(self, selected_id, *, title: str, service_cls, on_deleted):
         """Ask for confirmation, delete through `service_cls(db).delete`, then call `on_deleted`."""
+        label = self._record_label(selected_id)
+        message = t("confirm_delete_item").format(item=label) if label else t("confirm_delete")
+
         confirmed = self.ask_confirmation(
             title=title,
-            message=t("confirm_delete_item").format(item=self._selected_record_label()),
+            message=message,
             confirm_text=t("delete"),
             warning=True,
         )
@@ -147,19 +150,17 @@ class EntityManagerWidget(TranslatableWidget):
         )
         return dialog.exec() == QDialog.Accepted
 
-    def _selected_record_label(self) -> str:
-        """Text identifying the selected record, taken from RECORD_LABEL_COLUMNS."""
-        selected_rows = self.table.selectionModel().selectedRows()
-        if not selected_rows:
+    def _record_label(self, record_id) -> str:
+        """Text identifying the record in the table, taken from RECORD_LABEL_COLUMNS."""
+        row = next(
+            (row for row in range(self.table.rowCount()) if self._row_id(row) == record_id),
+            None
+        )
+        if row is None:
             return ""
 
-        row = selected_rows[0].row()
-        texts = [
-            self.table.item(row, column).text()
-            for column in self.RECORD_LABEL_COLUMNS
-            if self.table.item(row, column)
-        ]
-        return " — ".join(text for text in texts if text)
+        items = (self.table.item(row, column) for column in self.RECORD_LABEL_COLUMNS)
+        return " — ".join(item.text() for item in items if item and item.text())
 
     def get_operations_widget(self):
         parent = self.parent()
