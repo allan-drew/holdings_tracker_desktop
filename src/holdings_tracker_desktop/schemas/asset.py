@@ -12,7 +12,7 @@ class AssetBase(BaseSchema):
     @field_validator("ticker", mode="before")
     @classmethod
     def uppercase_ticker(cls, v: str) -> str:
-        return v.strip().upper()
+        return v.strip().upper() if isinstance(v, str) else v
 
 class AssetCreate(AssetBase):
     model_config = {

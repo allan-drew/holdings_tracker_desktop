@@ -10,7 +10,7 @@ class BrokerBase(BaseSchema):
     @field_validator("name", mode="before")
     @classmethod
     def strip_name(cls, v: str) -> str:
-        return v.strip()
+        return v.strip() if isinstance(v, str) else v
 
 class BrokerCreate(BrokerBase):
     model_config = {
@@ -24,7 +24,7 @@ class BrokerUpdate(BaseSchema):
     @field_validator("name", mode="before")
     @classmethod
     def strip_name(cls, v: Optional[str]) -> Optional[str]:
-        return v.strip() if v is not None else v
+        return v.strip() if isinstance(v, str) else v
 
     @model_validator(mode="after")
     def validate_at_least_one_field(self):

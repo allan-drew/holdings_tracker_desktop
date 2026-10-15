@@ -11,17 +11,17 @@ class CurrencyBase(BaseSchema):
     @field_validator("code", mode="before")
     @classmethod
     def uppercase_code(cls, v: str) -> str:
-        return v.strip().upper()
+        return v.strip().upper() if isinstance(v, str) else v
 
     @field_validator("name", mode="before")
     @classmethod
     def strip_name(cls, v: str) -> str:
-        return v.strip()
+        return v.strip() if isinstance(v, str) else v
 
     @field_validator("symbol", mode="before")
     @classmethod
     def strip_symbol(cls, v: str) -> str:
-        return v.strip()
+        return v.strip() if isinstance(v, str) else v
 
 class CurrencyCreate(CurrencyBase):
     model_config = {
@@ -36,17 +36,17 @@ class CurrencyUpdate(BaseSchema):
     @field_validator("code", mode="before")
     @classmethod
     def uppercase_code(cls, v: str) -> str:
-        return v.strip().upper()
+        return v.strip().upper() if isinstance(v, str) else v
 
     @field_validator("name", mode="before")
     @classmethod
     def strip_name(cls, v: str) -> str:
-        return v.strip()
+        return v.strip() if isinstance(v, str) else v
 
     @field_validator("symbol", mode="before")
     @classmethod
     def strip_symbol(cls, v: str) -> str:
-        return v.strip()
+        return v.strip() if isinstance(v, str) else v
 
     @model_validator(mode="after")
     def validate_at_least_one_field(self):
