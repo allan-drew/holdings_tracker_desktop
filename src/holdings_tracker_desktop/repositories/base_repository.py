@@ -53,7 +53,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         try:
             return self.db.query(self.model).filter(self.model.id == id).first()
         except SQLAlchemyError as e:
-            raise DatabaseException(f"Error fetching {self.model.__name__}: {str(e)}")
+            raise DatabaseException(f"Error fetching {self.model.__name__}: {str(e)}", "error_database", detail=str(e))
 
     def get_or_raise(self, id: int, error_message: Optional[str] = None) -> ModelType:
         """
@@ -72,7 +72,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         record = self.get(id)
         if not record:
             msg = error_message or f"{self.model.__name__} with ID {id} not found"
-            raise NotFoundException(msg)
+            raise NotFoundException(msg, "error_record_id_not_found", id=id)
         return record
 
     def get_all(
@@ -108,7 +108,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             # Apply pagination
             return query.offset(skip).limit(limit).all()
         except SQLAlchemyError as e:
-            raise DatabaseException(f"Error fetching all {self.model.__name__}: {str(e)}")
+            raise DatabaseException(f"Error fetching all {self.model.__name__}: {str(e)}", "error_database", detail=str(e))
 
     def create(self, obj: ModelType, commit: bool = True) -> ModelType:
         """
@@ -129,10 +129,10 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             return obj
         except IntegrityError as e:
             self.db.rollback()
-            raise ConflictException(f"Conflict creating {self.model.__name__}: {str(e)}")
+            raise ConflictException(f"Conflict creating {self.model.__name__}: {str(e)}", "error_conflict", detail=str(e))
         except SQLAlchemyError as e:
             self.db.rollback()
-            raise DatabaseException(f"Error creating {self.model.__name__}: {str(e)}")
+            raise DatabaseException(f"Error creating {self.model.__name__}: {str(e)}", "error_database", detail=str(e))
 
     def create_from_schema(self, schema: CreateSchemaType, commit: bool = True) -> ModelType:
         """
@@ -169,10 +169,10 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             return obj
         except IntegrityError as e:
             self.db.rollback()
-            raise ConflictException(f"Conflict updating {self.model.__name__}: {str(e)}")
+            raise ConflictException(f"Conflict updating {self.model.__name__}: {str(e)}", "error_conflict", detail=str(e))
         except SQLAlchemyError as e:
             self.db.rollback()
-            raise DatabaseException(f"Error updating {self.model.__name__}: {str(e)}")
+            raise DatabaseException(f"Error updating {self.model.__name__}: {str(e)}", "error_database", detail=str(e))
 
     def update_from_schema(self, id: int, schema: UpdateSchemaType, commit: bool = True) -> ModelType:
         """
@@ -221,7 +221,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             return True
         except SQLAlchemyError as e:
             self.db.rollback()
-            raise DatabaseException(f"Error deleting {self.model.__name__}: {str(e)}")
+            raise DatabaseException(f"Error deleting {self.model.__name__}: {str(e)}", "error_database", detail=str(e))
     
     def delete_or_raise(self, id: int, error_message: Optional[str] = None) -> None:
         """
@@ -237,7 +237,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         deleted = self.delete(id)
         if not deleted:
             msg = error_message or f"{self.model.__name__} with ID {id} not found"
-            raise NotFoundException(msg)
+            raise NotFoundException(msg, "error_record_id_not_found", id=id)
 
     # =========================================================================
     # QUERY OPERATIONS
@@ -253,7 +253,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         try:
             return self.db.query(func.count(self.model.id)).scalar()
         except SQLAlchemyError as e:
-            raise DatabaseException(f"Error counting {self.model.__name__}: {str(e)}")
+            raise DatabaseException(f"Error counting {self.model.__name__}: {str(e)}", "error_database", detail=str(e))
 
     def exists(self, id: int) -> bool:
         """
@@ -270,7 +270,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                 self.db.query(self.model).filter(self.model.id == id).exists()
             ).scalar()
         except SQLAlchemyError as e:
-            raise DatabaseException(f"Error checking existence of {self.model.__name__}: {str(e)}")
+            raise DatabaseException(f"Error checking existence of {self.model.__name__}: {str(e)}", "error_database", detail=str(e))
 
     def find_one_by(self, **filters) -> Optional[ModelType]:
         """
@@ -285,7 +285,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         try:
             return self.db.query(self.model).filter_by(**filters).first()
         except SQLAlchemyError as e:
-            raise DatabaseException(f"Error finding {self.model.__name__}: {str(e)}")
+            raise DatabaseException(f"Error finding {self.model.__name__}: {str(e)}", "error_database", detail=str(e))
 
     def find_all_by(
         self, 
@@ -308,7 +308,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             query = self.db.query(self.model).filter_by(**filters)
             return query.offset(skip).limit(limit).all()
         except SQLAlchemyError as e:
-            raise DatabaseException(f"Error finding all {self.model.__name__}: {str(e)}")
+            raise DatabaseException(f"Error finding all {self.model.__name__}: {str(e)}", "error_database", detail=str(e))
 
     def search(
         self,
@@ -352,7 +352,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
             return q.offset(skip).limit(limit).all()
         except SQLAlchemyError as e:
-            raise DatabaseException(f"Error searching {self.model.__name__}: {str(e)}")
+            raise DatabaseException(f"Error searching {self.model.__name__}: {str(e)}", "error_database", detail=str(e))
 
     # =========================================================================
     # UTILITY METHODS
@@ -372,7 +372,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             self.db.refresh(obj)
             return obj
         except SQLAlchemyError as e:
-            raise DatabaseException(f"Error refreshing {self.model.__name__}: {str(e)}")
+            raise DatabaseException(f"Error refreshing {self.model.__name__}: {str(e)}", "error_database", detail=str(e))
 
     def save_changes(self) -> None:
         """
@@ -385,7 +385,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             self.db.commit()
         except SQLAlchemyError as e:
             self.db.rollback()
-            raise DatabaseException(f"Error saving changes: {str(e)}")
+            raise DatabaseException(f"Error saving changes: {str(e)}", "error_database", detail=str(e))
 
     @contextmanager
     def atomic(self):

@@ -32,7 +32,7 @@ class AssetTickerHistoryService:
         )
 
         if not asset:
-            raise NotFoundException("Asset not found")
+            raise NotFoundException("Asset not found", "error_record_id_not_found", id=data.asset_id)
 
         if asset.ticker == data.new_ticker:
             raise ValidationException(
