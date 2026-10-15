@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from PySide6.QtCore import QDate
-from PySide6.QtWidgets import QWidget, QButtonGroup, QRadioButton, QHBoxLayout
+from PySide6.QtWidgets import QWidget, QButtonGroup, QRadioButton, QHBoxLayout, QLineEdit
 
 from holdings_tracker_desktop.database import get_db
 from holdings_tracker_desktop.models.broker_note import OperationType
@@ -35,6 +35,7 @@ class BrokerNoteForm(BaseFormDialog):
         self._load_date(data)
         self._load_operation(data)
         self._load_broker(data)
+        self._load_note_number(data)
         self._load_asset(data)
         self._load_financial_fields(data)
 
@@ -64,6 +65,10 @@ class BrokerNoteForm(BaseFormDialog):
         if index >= 0:
             self.broker_combo.setCurrentIndex(index)
 
+    def _load_note_number(self, data: dict):
+        if data.get("note_number"):
+            self.note_number_input.setText(data["note_number"])
+
     def _load_asset(self, data: dict):
         asset_id = data.get("asset_id")
 
@@ -92,6 +97,7 @@ class BrokerNoteForm(BaseFormDialog):
         self._setup_date_input(form_layout)
         self._setup_operation_radio_button(form_layout)
         self._setup_broker_combo(form_layout)
+        self._setup_note_number_input(form_layout)
         self._setup_asset_combo(form_layout)
         self._setup_financial_fields(form_layout)
 
@@ -129,6 +135,11 @@ class BrokerNoteForm(BaseFormDialog):
           self.broker_combo.setCurrentIndex(1)
         form_layout.addRow(f"{t('broker')}:", self.broker_combo)
 
+    def _setup_note_number_input(self, form_layout):
+        self.note_number_input = QLineEdit()
+        self.note_number_input.setMaxLength(30)
+        form_layout.addRow(f"{t('note_number')}:", self.note_number_input)
+
     def _setup_asset_combo(self, form_layout):
         self.asset_combo = AssetComboBox()
         form_layout.addRow(f"{t('asset')}:", self.asset_combo)
@@ -148,6 +159,7 @@ class BrokerNoteForm(BaseFormDialog):
         date = self.date_input.date().toPython()
         operation: OperationType = self.operation_group.checkedButton().property("value")
         broker_id = self.broker_combo.currentData()
+        note_number = self.note_number_input.text().strip() or None
         asset_id = self.asset_combo.currentData()
         quantity = Decimal(str(self.quantity_input.value()))
         price = Decimal(str(self.price_input.value()))
@@ -161,6 +173,7 @@ class BrokerNoteForm(BaseFormDialog):
                 update_data = BrokerNoteUpdate(
                     date=date,
                     broker_id=broker_id,
+                    note_number=note_number,
                     quantity=quantity,
                     price=price,
                     fees=fees,
@@ -172,6 +185,7 @@ class BrokerNoteForm(BaseFormDialog):
                     date=date, 
                     operation=operation, 
                     broker_id=broker_id,
+                    note_number=note_number,
                     asset_id=asset_id,
                     quantity=quantity,
                     price=price,
