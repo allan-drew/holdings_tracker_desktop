@@ -65,10 +65,13 @@ class EntityManagerWidget(TranslatableWidget):
 
     def get_selected_id(self):
         row = self.table.currentRow()
-        if row < 0: 
+        item = self.table.item(row, 0) if row >= 0 else None
+        selected_id = item.data(Qt.UserRole) if item else None
+
+        if selected_id is None:
             self.show_warning(t("no_row_selected"))
-            return None
-        return self.table.item(row, 0).data(Qt.UserRole)
+
+        return selected_id
 
     def on_add_clicked(self):
         self.open_new_form()
@@ -189,6 +192,16 @@ class EntityManagerWidget(TranslatableWidget):
 
             value_item.setFont(self.font_demi_bold)
             self.table.setItem(total_row, value_column, value_item)
+
+            self._make_row_unselectable(total_row)
+
+    def _make_row_unselectable(self, row: int) -> None:
+        for column in range(self.table.columnCount()):
+            item = self.table.item(row, column)
+            if item is None:
+                item = table_item("")
+                self.table.setItem(row, column, item)
+            item.setFlags(item.flags() & ~Qt.ItemIsSelectable)
 
     @property
     def font_demi_bold(self):
