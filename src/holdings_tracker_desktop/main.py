@@ -12,6 +12,11 @@ def main():
 
     app = QApplication(sys.argv)
 
+    # Translate Qt's own texts before any dialog (including startup errors) appears
+    from holdings_tracker_desktop.ui.core.app_settings import AppSettings
+    from holdings_tracker_desktop.ui.core.qt_translations import apply_language
+    apply_language(AppSettings().get_language())
+
     # Show splash screen while Bootstrap runs
     from holdings_tracker_desktop.ui.splash_screen import SplashScreen
     splash = SplashScreen()

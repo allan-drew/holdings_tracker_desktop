@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout
 from holdings_tracker_desktop.version import get_app_version
 from holdings_tracker_desktop.ui.core import translations as i18n
 from holdings_tracker_desktop.ui.core.app_settings import AppSettings
-from holdings_tracker_desktop.ui.core.qt_translations import install_qt_translator
+from holdings_tracker_desktop.ui.core.qt_translations import apply_language
 from holdings_tracker_desktop.ui.styles import base
 from holdings_tracker_desktop.ui.widgets.charts_widget import ChartsWidget
 from holdings_tracker_desktop.ui.widgets.operations_widget import OperationsWidget
@@ -22,9 +22,8 @@ class MainWindow(QMainWindow):
         if i18n.current_lang == lang:
             return
 
-        i18n.current_lang = lang
+        apply_language(lang)
         self.settings.set_language(lang)
-        install_qt_translator(lang)
         self.translate_ui()
 
     def translate_ui(self):
@@ -38,8 +37,7 @@ class MainWindow(QMainWindow):
     def _init_state(self):
         self.widgets_with_translation = []
         self.settings = AppSettings()
-        i18n.current_lang = self.settings.get_language()
-        install_qt_translator(i18n.current_lang)
+        apply_language(self.settings.get_language())
 
     def _init_ui(self):
         self.setWindowTitle(f"Holdings Tracker v{get_app_version()}")
