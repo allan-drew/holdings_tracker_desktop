@@ -76,7 +76,7 @@ class BaseFormDialog(QDialog):
         return t(FIELD_LABEL_KEYS.get(field, field.removesuffix("_id")))
 
     def _is_empty_string_error(self, err: dict) -> bool:
-        return err["type"] == "string_too_short" and not err.get("input")
+        return err["type"] == "string_too_short" and not str(err.get("input") or "").strip()
 
     def _translate_validation_message(self, err: dict) -> str:
         error_type = err["type"]
