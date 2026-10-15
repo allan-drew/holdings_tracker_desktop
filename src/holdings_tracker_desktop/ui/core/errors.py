@@ -9,7 +9,12 @@ def error_text(error: Exception) -> str:
     """User-facing text for an exception, translated when it carries a key."""
     if isinstance(error, AppException) and error.key:
         params = {name: _format_param(value) for name, value in error.params.items()}
-        return t(error.key).format(**params)
+
+        try:
+            return t(error.key).format(**params)
+        except (KeyError, IndexError, ValueError):
+            # Translation and params out of sync: show the English message instead of failing
+            return error.message
 
     return str(error)
 
