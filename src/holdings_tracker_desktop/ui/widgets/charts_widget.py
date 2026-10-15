@@ -155,11 +155,20 @@ class ChartsWidget(TranslatableWidget):
 
         with get_db() as db:
             service = AssetTypeService(db)
-            for asset_type in service.list_all_models():
-                self._add_action(
-                    menu, asset_type.name, asset_type.id,
-                    self._on_asset_type_selected,
-                )
+            asset_types = [
+                (asset_type.id, asset_type.name)
+                for asset_type in service.list_all_models()
+            ]
+
+        for asset_type_id, name in asset_types:
+            self._add_action(
+                menu, name, asset_type_id,
+                self._on_asset_type_selected,
+            )
+
+        available_ids = {asset_type_id for asset_type_id, _ in asset_types}
+        if self.state.asset_type_id not in available_ids:
+            self.state.asset_type_id = None
 
     def _on_asset_type_selected(self, asset_type_id: int):
         self.state.asset_type_id = None if asset_type_id == 0 else asset_type_id
