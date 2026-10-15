@@ -24,6 +24,9 @@ BUTTONS_CONFIG = {
 }
 
 class EntityManagerWidget(TranslatableWidget):
+    # Table columns joined to name the selected record in confirmations
+    RECORD_LABEL_COLUMNS: tuple[int, ...] = (0,)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.buttons = {}
@@ -113,7 +116,13 @@ class EntityManagerWidget(TranslatableWidget):
 
     def delete_with_confirmation(self, selected_id, *, title: str, service_cls, on_deleted):
         """Ask for confirmation, delete through `service_cls(db).delete`, then call `on_deleted`."""
-        if not self.ask_confirmation(title=title, message=t("confirm_delete")):
+        confirmed = self.ask_confirmation(
+            title=title,
+            message=t("confirm_delete_item").format(item=self._selected_record_label()),
+            confirm_text=t("delete"),
+            warning=True,
+        )
+        if not confirmed:
             return
 
         try:
@@ -129,13 +138,28 @@ class EntityManagerWidget(TranslatableWidget):
         else:
             self.show_error(t("delete_failed"))
 
-    def ask_confirmation(self, title: str, message: str) -> bool:
+    def ask_confirmation(self, title: str, message: str, **options) -> bool:
         dialog = ConfirmDialog(
             title=title,
             message=message,
-            parent=self
+            parent=self,
+            **options
         )
         return dialog.exec() == QDialog.Accepted
+
+    def _selected_record_label(self) -> str:
+        """Text identifying the selected record, taken from RECORD_LABEL_COLUMNS."""
+        selected_rows = self.table.selectionModel().selectedRows()
+        if not selected_rows:
+            return ""
+
+        row = selected_rows[0].row()
+        texts = [
+            self.table.item(row, column).text()
+            for column in self.RECORD_LABEL_COLUMNS
+            if self.table.item(row, column)
+        ]
+        return " — ".join(text for text in texts if text)
 
     def get_operations_widget(self):
         parent = self.parent()

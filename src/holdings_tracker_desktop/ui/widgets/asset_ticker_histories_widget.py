@@ -8,6 +8,8 @@ from holdings_tracker_desktop.ui.core.ui_helpers import prepare_table, table_ite
 from holdings_tracker_desktop.ui.widgets.entity_manager_widget import EntityManagerWidget
 
 class AssetTickerHistoriesWidget(EntityManagerWidget):
+    RECORD_LABEL_COLUMNS = (1, 2, 3)
+
     def __init__(self, asset_id: int, parent=None):
         super().__init__(parent)
         self.asset_id = asset_id

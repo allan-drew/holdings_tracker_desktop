@@ -10,6 +10,8 @@ from holdings_tracker_desktop.ui.core.ui_helpers import prepare_table, table_ite
 from holdings_tracker_desktop.ui.widgets.entity_manager_widget import EntityManagerWidget
 
 class BrokerNotesWidget(EntityManagerWidget):
+    RECORD_LABEL_COLUMNS = (0, 1, 2)
+
     """
     BrokerNotes UI update flow (by year filter):
 
