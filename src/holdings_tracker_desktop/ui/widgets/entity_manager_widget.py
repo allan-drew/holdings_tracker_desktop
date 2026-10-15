@@ -7,7 +7,9 @@ from PySide6.QtWidgets import (
     QFrame, QHeaderView, QMessageBox, QDialog
 )
 
+from holdings_tracker_desktop.database import get_db
 from holdings_tracker_desktop.ui.core import t
+from holdings_tracker_desktop.ui.core.errors import error_text
 from holdings_tracker_desktop.ui.dialogs.confirm_dialog import ConfirmDialog
 from holdings_tracker_desktop.ui.widgets.title_widget import TitleWidget
 from holdings_tracker_desktop.ui.widgets.translatable_widget import TranslatableWidget
@@ -102,6 +104,30 @@ class EntityManagerWidget(TranslatableWidget):
 
     def show_error(self, message: str):
         QMessageBox.critical(self, t("error"), message)
+
+    def show_load_error(self, error: Exception):
+        self.show_error(t("error_loading").format(error=error_text(error)))
+
+    def show_open_form_error(self, error: Exception):
+        self.show_error(t("error_opening_form").format(error=error_text(error)))
+
+    def delete_with_confirmation(self, selected_id, *, title: str, service_cls, on_deleted):
+        """Ask for confirmation, delete through `service_cls(db).delete`, then call `on_deleted`."""
+        if not self.ask_confirmation(title=title, message=t("confirm_delete")):
+            return
+
+        try:
+            with get_db() as db:
+                deleted = service_cls(db).delete(selected_id)
+
+        except Exception as e:
+            self.show_error(t("error_deleting").format(error=error_text(e)))
+            return
+
+        if deleted:
+            on_deleted()
+        else:
+            self.show_error(t("delete_failed"))
 
     def ask_confirmation(self, title: str, message: str) -> bool:
         dialog = ConfirmDialog(

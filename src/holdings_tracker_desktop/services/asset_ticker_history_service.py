@@ -8,7 +8,9 @@ from holdings_tracker_desktop.schemas.asset_ticker_history import (
   AssetTickerHistoryCreate, AssetTickerHistoryUpdate, AssetTickerHistoryResponse
 )
 from holdings_tracker_desktop.services.asset_service import AssetService
-from holdings_tracker_desktop.utils.exceptions import ConflictException
+from holdings_tracker_desktop.utils.exceptions import (
+    ConflictException, NotFoundException, ValidationException
+)
 
 class AssetTickerHistoryService:
     def __init__(self, db: Session):
@@ -30,10 +32,12 @@ class AssetTickerHistoryService:
         )
 
         if not asset:
-            raise ValueError("Asset not found")
+            raise NotFoundException("Asset not found")
 
         if asset.ticker == data.new_ticker:
-            raise ValueError("New ticker must be different from current ticker")
+            raise ValidationException(
+                "New ticker must be different from current ticker", "error_ticker_unchanged"
+            )
 
         AssetService(db).ensure_ticker_is_unique(data.new_ticker, exclude_id=asset.id)
 
@@ -73,7 +77,9 @@ class AssetTickerHistoryService:
         )
 
         if latest.id != history.id:
-            raise ConflictException("Only the most recent ticker change can be deleted")
+            raise ConflictException(
+                "Only the most recent ticker change can be deleted", "error_only_latest_ticker_change"
+            )
 
         if history.old_ticker:
             AssetService(db).ensure_ticker_is_unique(history.old_ticker, exclude_id=history.asset_id)

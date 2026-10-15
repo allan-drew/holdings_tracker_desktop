@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import AuditableModel
+from holdings_tracker_desktop.utils.exceptions import ConflictException
 
 if TYPE_CHECKING:
     from .broker_note import BrokerNote
@@ -60,21 +61,21 @@ class Broker(AuditableModel):
     def broker_notes_count(self) -> int:
         return self.broker_notes.count()
 
-    def validate_for_deletion(self) -> tuple[bool, str]:
+    def validate_for_deletion(self) -> ConflictException | None:
         """
         Validate if broker can be deleted.
 
         Returns:
-            Tuple of (can_delete: bool, reason: str)
+            The ConflictException to raise, or None when it can be deleted
         """
         count = self.broker_notes_count
         if count > 0:
-            return (
-                False,
-                f"Cannot delete '{self.name}' because it has {count} associated broker notes"
+            return ConflictException(
+                f"Cannot delete '{self.name}' because it has {count} associated broker notes",
+                "error_has_broker_notes", name=self.name, count=count
             )
 
-        return True, ""
+        return None
 
     def to_ui_dict(self) -> dict:
         """Optimized for PySide6 table widgets"""

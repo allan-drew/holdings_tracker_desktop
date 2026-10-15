@@ -41,9 +41,9 @@ class AssetTypeService:
         """Delete AssetType"""
         asset_type = self.repository.get_or_raise(asset_type_id)
 
-        can_delete, error_message = asset_type.validate_for_deletion()
-        if not can_delete:
-            raise ConflictException(error_message)
+        error = asset_type.validate_for_deletion()
+        if error:
+            raise error
 
         return self.repository.delete(asset_type_id)
 
@@ -89,7 +89,8 @@ class AssetTypeService:
 
         if self.repository.db.query(query.exists()).scalar():
             raise ConflictException(
-                f"Asset Type '{name}' already exists"
+                f"Asset Type '{name}' already exists",
+                "error_already_exists", name=name
             )
 
     def get_details(self, asset_type_id: int) -> AssetType:

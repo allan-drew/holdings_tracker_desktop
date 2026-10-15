@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
 )
 
 from holdings_tracker_desktop.ui.core import t
+from holdings_tracker_desktop.ui.core.errors import error_text
 from holdings_tracker_desktop.ui.core.translations import TRANSLATIONS
 
 # Schema fields whose label key differs from the field name without "_id".
@@ -62,7 +63,7 @@ class BaseFormDialog(QDialog):
         QMessageBox.critical(
             self,
             t("error"),
-            str(error)
+            error_text(error)
         )
 
     def _field_label(self, loc: tuple) -> str:

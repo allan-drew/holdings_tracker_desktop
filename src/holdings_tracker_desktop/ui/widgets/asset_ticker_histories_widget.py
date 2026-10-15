@@ -30,7 +30,7 @@ class AssetTickerHistoriesWidget(EntityManagerWidget):
                 self.ui_data = service.list_all_for_ui(asset_id=self.asset_id)
 
         except Exception as e:
-            self.show_error(f"Error loading asset ticker histories: {str(e)}")
+            self.show_load_error(e)
             self.table.setRowCount(0)
 
         self.translate_ui()
@@ -58,23 +58,16 @@ class AssetTickerHistoriesWidget(EntityManagerWidget):
             global_signals.assets_updated.emit()
 
     def delete_record(self, selected_id):
-        try:
-            with get_db() as db:
-                service = AssetTickerHistoryService(db)
+        self.delete_with_confirmation(
+            selected_id,
+            title=t('delete_asset_ticker_history'),
+            service_cls=AssetTickerHistoryService,
+            on_deleted=self._on_record_deleted,
+        )
 
-                if not self.ask_confirmation(title=t('delete_asset_ticker_history'), message=t('confirm_delete')):
-                    return
-
-                deleted = service.delete(selected_id)
-
-                if deleted:
-                    self.load_data()
-                    global_signals.assets_updated.emit()
-                else:
-                    self.show_error(f"Delete failed")
-
-        except Exception as e:
-            self.show_error(f"Error deleting asset ticker history: {str(e)}")
+    def _on_record_deleted(self):
+        self.load_data()
+        global_signals.assets_updated.emit()
 
     def open_details(self, selected_id):
         from holdings_tracker_desktop.ui.dialogs.ticker_history_details_dialog import (

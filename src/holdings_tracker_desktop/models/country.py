@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import AuditableModel
+from holdings_tracker_desktop.utils.exceptions import ConflictException
 
 if TYPE_CHECKING:
     from .broker import Broker
@@ -59,26 +60,26 @@ class Country(AuditableModel):
     def brokers_count(self) -> int:
         return len(self.brokers)
 
-    def validate_for_deletion(self) -> tuple[bool, str]:
+    def validate_for_deletion(self) -> ConflictException | None:
         """
         Validate if country can be deleted.
         
         Returns:
-            Tuple of (can_delete: bool, reason: str)
+            The ConflictException to raise, or None when it can be deleted
         """
         if self.brokers_count > 0:
-            return (
-                False, 
-                f"Cannot delete '{self.name}' because it has {self.brokers_count} associated brokers"
+            return ConflictException(
+                f"Cannot delete '{self.name}' because it has {self.brokers_count} associated brokers",
+                "error_has_brokers", name=self.name, count=self.brokers_count
             )
 
         if self.asset_types_count > 0:
-            return (
-                False, 
-                f"Cannot delete '{self.name}' because it has {self.asset_types_count} associated asset types"
+            return ConflictException(
+                f"Cannot delete '{self.name}' because it has {self.asset_types_count} associated asset types",
+                "error_has_asset_types", name=self.name, count=self.asset_types_count
             )
 
-        return True, ""
+        return None
 
     def to_ui_dict(self) -> dict:
         """Optimized for PySide6 table widgets"""

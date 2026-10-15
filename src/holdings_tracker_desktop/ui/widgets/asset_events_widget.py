@@ -27,7 +27,7 @@ class AssetEventsWidget(EntityManagerWidget):
                 self.ui_data = service.list_all_for_ui(asset_id=self.asset_id)
 
         except Exception as e:
-            self.show_error(f"Error loading asset events: {str(e)}")
+            self.show_load_error(e)
             self.table.setRowCount(0)
 
         self.translate_ui()
@@ -84,26 +84,19 @@ class AssetEventsWidget(EntityManagerWidget):
                     global_signals.asset_events_updated.emit()
 
         except Exception as e:
-            self.show_error(f"Error opening edit form: {str(e)}")
+            self.show_open_form_error(e)
 
     def delete_record(self, selected_id):
-        try:
-            with get_db() as db:
-                service = AssetEventService(db)
+        self.delete_with_confirmation(
+            selected_id,
+            title=t('delete_asset_event'),
+            service_cls=AssetEventService,
+            on_deleted=self._on_record_deleted,
+        )
 
-                if not self.ask_confirmation(title=t('delete_asset_event'), message=t('confirm_delete')):
-                    return
-
-                deleted = service.delete(selected_id)
-
-                if deleted:
-                    self.load_data()
-                    global_signals.asset_events_updated.emit()
-                else:
-                    self.show_error(f"Delete failed")
-
-        except Exception as e:
-            self.show_error(f"Error deleting asset event: {str(e)}")
+    def _on_record_deleted(self):
+        self.load_data()
+        global_signals.asset_events_updated.emit()
 
     def open_details(self, selected_id):
         from holdings_tracker_desktop.ui.dialogs.asset_event_details_dialog import (

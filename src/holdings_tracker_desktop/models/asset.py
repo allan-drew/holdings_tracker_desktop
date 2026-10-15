@@ -5,6 +5,7 @@ from sqlalchemy import String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .asset_event import AssetEventType
 from .base import AuditableModel
+from holdings_tracker_desktop.utils.exceptions import ConflictException
 
 if TYPE_CHECKING:
     from .asset_event import AssetEvent
@@ -124,18 +125,18 @@ class Asset(AuditableModel):
     def ticker_histories_count(self) -> int:
         return self.ticker_histories.count()
 
-    def validate_for_deletion(self) -> tuple[bool, str]:
+    def validate_for_deletion(self) -> ConflictException | None:
         """
         Validate if asset can be deleted.
         
         Returns:
-            Tuple of (can_delete: bool, reason: str)
+            The ConflictException to raise, or None when it can be deleted
         """
         count = self.broker_notes_count
         if count > 0:
-            return (
-                False, 
-                f"Cannot delete '{self.ticker}' because it has {count} associated broker notes"
+            return ConflictException(
+                f"Cannot delete '{self.ticker}' because it has {count} associated broker notes",
+                "error_has_broker_notes", name=self.ticker, count=count
             )
 
         # Deleting either side of a conversion would leave the other asset's
@@ -145,12 +146,12 @@ class Asset(AuditableModel):
             + len(self.events_as_target)
         )
         if conversions > 0:
-            return (
-                False,
-                f"Cannot delete '{self.ticker}' because it has {conversions} associated conversion events"
+            return ConflictException(
+                f"Cannot delete '{self.ticker}' because it has {conversions} associated conversion events",
+                "error_has_conversion_events", name=self.ticker, count=conversions
             )
 
-        return True, ""
+        return None
 
     def to_ui_dict(self) -> dict:
         """Optimized for PySide6 table widgets"""

@@ -35,7 +35,7 @@ class AssetsWidget(EntityManagerWidget):
                 self.ui_data = service.list_all_for_ui(asset_type_id=asset_type_id)
 
         except Exception as e:
-            self.show_error(f"Error loading assets: {str(e)}")
+            self.show_load_error(e)
             self.table.setRowCount(0)
 
         self.translate_ui()
@@ -83,26 +83,19 @@ class AssetsWidget(EntityManagerWidget):
                     global_signals.assets_updated.emit()
 
         except Exception as e:
-            self.show_error(f"Error opening edit form: {str(e)}")
+            self.show_open_form_error(e)
 
     def delete_record(self, selected_id):
-        try:
-            with get_db() as db:
-                service = AssetService(db)
+        self.delete_with_confirmation(
+            selected_id,
+            title=t('delete_asset'),
+            service_cls=AssetService,
+            on_deleted=self._on_record_deleted,
+        )
 
-                if not self.ask_confirmation(title=t('delete_asset'), message=t('confirm_delete')):
-                    return
-
-                deleted = service.delete(selected_id)
-
-                if deleted:
-                    self.load_data()
-                    global_signals.assets_updated.emit()
-                else:
-                    self.show_error(f"Delete failed")
-
-        except Exception as e:
-            self.show_error(f"Error deleting asset: {str(e)}")
+    def _on_record_deleted(self):
+        self.load_data()
+        global_signals.assets_updated.emit()
 
     def open_details(self, selected_id):
         from holdings_tracker_desktop.ui.dialogs.asset_details_dialog import (

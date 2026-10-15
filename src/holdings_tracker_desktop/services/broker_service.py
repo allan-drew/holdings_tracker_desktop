@@ -41,9 +41,9 @@ class BrokerService:
         """Delete Broker"""
         broker = self.repository.get_or_raise(broker_id)
 
-        can_delete, error_message = broker.validate_for_deletion()
-        if not can_delete:
-            raise ConflictException(error_message)
+        error = broker.validate_for_deletion()
+        if error:
+            raise error
 
         return self.repository.delete(broker_id)
 
@@ -89,7 +89,8 @@ class BrokerService:
 
         if self.repository.db.query(query.exists()).scalar():
             raise ConflictException(
-                f"Broker '{name}' already exists"
+                f"Broker '{name}' already exists",
+                "error_already_exists", name=name
             )
 
     def get_details(self, broker_id: int) -> Broker:

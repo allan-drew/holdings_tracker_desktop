@@ -22,7 +22,7 @@ class CountriesWidget(EntityManagerWidget):
                 self.ui_data = service.list_all_for_ui()
 
         except Exception as e:
-            self.show_error(f"Error loading countries: {str(e)}")
+            self.show_load_error(e)
             self.table.setRowCount(0)
 
         self.translate_ui()
@@ -61,25 +61,15 @@ class CountriesWidget(EntityManagerWidget):
                     self.load_data()
 
         except Exception as e:
-            self.show_error(f"Error opening edit form: {str(e)}")
+            self.show_open_form_error(e)
 
     def delete_record(self, selected_id):
-        try:
-            with get_db() as db:
-                service = CountryService(db)
-
-                if not self.ask_confirmation(title=t('delete_country'), message=t('confirm_delete')):
-                    return
-
-                deleted = service.delete(selected_id)
-
-                if deleted:
-                    self.load_data()
-                else:
-                    self.show_error(f"Delete failed")
-
-        except Exception as e:
-            self.show_error(f"Error deleting country: {str(e)}")
+        self.delete_with_confirmation(
+            selected_id,
+            title=t('delete_country'),
+            service_cls=CountryService,
+            on_deleted=self.load_data,
+        )
 
     def open_details(self, selected_id):
         from holdings_tracker_desktop.ui.dialogs.country_details_dialog import (

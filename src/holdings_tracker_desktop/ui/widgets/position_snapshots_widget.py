@@ -45,7 +45,7 @@ class PositionSnapshotsWidget(EntityManagerWidget):
                         self.ui_data = service.list_all_for_ui_by_year(self.year, asset_type_id=asset_type_id)
 
         except Exception as e:
-            self.show_error(f"Error loading position snapshots: {str(e)}")
+            self.show_load_error(e)
             self.table.setRowCount(0)
 
         self.translate_ui()

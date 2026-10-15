@@ -405,7 +405,9 @@ class PositionSnapshotService:
                 ticker = note.asset.ticker if note.asset else note.asset_id
                 raise ValidationException(
                     f"Sell of {note.quantity:f} {ticker} on {note.date.isoformat()} "
-                    f"exceeds the position of {quantity:f} at that date"
+                    f"exceeds the position of {quantity:f} at that date",
+                    "error_sell_exceeds_position",
+                    quantity=note.quantity, ticker=ticker, date=note.date, position=quantity
                 )
 
             if quantity <= 0:

@@ -57,7 +57,7 @@ class BrokerNotesWidget(EntityManagerWidget):
                     self.ui_data = service.list_by_year_for_ui(year)
 
         except Exception as e:
-            self.show_error(f"Error loading broker notes: {str(e)}")
+            self.show_load_error(e)
             self.table.setRowCount(0)
 
         self.translate_ui()
@@ -105,25 +105,15 @@ class BrokerNotesWidget(EntityManagerWidget):
                     global_signals.broker_notes_updated.emit()
 
         except Exception as e:
-            self.show_error(f"Error opening edit form: {str(e)}")
+            self.show_open_form_error(e)
 
     def delete_record(self, selected_id):
-        try:
-            with get_db() as db:
-                service = BrokerNoteService(db)
-
-                if not self.ask_confirmation(title=t('delete_broker_note'), message=t('confirm_delete')):
-                    return
-
-                deleted = service.delete(selected_id)
-
-                if deleted:
-                    global_signals.broker_notes_updated.emit()
-                else:
-                    self.show_error(f"Delete failed")
-
-        except Exception as e:
-            self.show_error(f"Error deleting broker note: {str(e)}")
+        self.delete_with_confirmation(
+            selected_id,
+            title=t('delete_broker_note'),
+            service_cls=BrokerNoteService,
+            on_deleted=global_signals.broker_notes_updated.emit,
+        )
 
     def open_details(self, selected_id):
         from holdings_tracker_desktop.ui.dialogs.broker_note_details_dialog import (

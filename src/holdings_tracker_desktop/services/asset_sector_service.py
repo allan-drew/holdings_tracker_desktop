@@ -7,7 +7,6 @@ from holdings_tracker_desktop.repositories.base_repository import BaseRepository
 from holdings_tracker_desktop.schemas.asset_sector import (
   AssetSectorCreate, AssetSectorUpdate, AssetSectorResponse
 )
-from holdings_tracker_desktop.utils.exceptions import ConflictException
 
 class AssetSectorService:
     def __init__(self, db: Session):
@@ -35,9 +34,9 @@ class AssetSectorService:
         """Delete AssetSector"""
         asset_sector = self.repository.get_or_raise(asset_sector_id)
 
-        can_delete, error_message = asset_sector.validate_for_deletion()
-        if not can_delete:
-            raise ConflictException(error_message)
+        error = asset_sector.validate_for_deletion()
+        if error:
+            raise error
 
         return self.repository.delete(asset_sector_id)
 

@@ -41,9 +41,9 @@ class CurrencyService:
         """Delete Currency"""
         currency = self.repository.get_or_raise(currency_id)
 
-        can_delete, error_message = currency.validate_for_deletion()
-        if not can_delete:
-            raise ConflictException(error_message)
+        error = currency.validate_for_deletion()
+        if error:
+            raise error
 
         return self.repository.delete(currency_id)
 
@@ -84,7 +84,8 @@ class CurrencyService:
 
         if self.repository.db.query(query.exists()).scalar():
             raise ConflictException(
-                f"Currency '{code}' already exists"
+                f"Currency '{code}' already exists",
+                "error_already_exists", name=code
             )
 
     def get_details(self, currency_id: int) -> Currency:

@@ -41,9 +41,9 @@ class CountryService:
         """Delete Country"""
         country = self.repository.get_or_raise(country_id)
 
-        can_delete, error_message = country.validate_for_deletion()
-        if not can_delete:
-            raise ConflictException(error_message)
+        error = country.validate_for_deletion()
+        if error:
+            raise error
 
         return self.repository.delete(country_id)
 
@@ -84,7 +84,8 @@ class CountryService:
 
         if self.repository.db.query(query.exists()).scalar():
             raise ConflictException(
-                f"Country '{name}' already exists"
+                f"Country '{name}' already exists",
+                "error_already_exists", name=name
             )
 
     def get_details(self, country_id: int) -> Country:
