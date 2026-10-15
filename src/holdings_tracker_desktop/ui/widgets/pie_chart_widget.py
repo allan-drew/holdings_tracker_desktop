@@ -1,6 +1,5 @@
-from matplotlib import colormaps
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.colors import to_hex
+from matplotlib.colors import hsv_to_rgb, to_hex
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtGui import QFontMetrics
@@ -18,17 +17,23 @@ DONUT_WIDTH = 0.6
 EXPLODE_OFFSET = 0.08
 EXTRA_PADDING = 48
 
-def build_colors(count: int) -> list[str]:
-    """Return `count` distinct colors: the base palette first, then evenly spaced colormap samples."""
-    if count <= len(COLOR_PALETTE):
-        return COLOR_PALETTE[:count]
+# Remaining Tableau 20 colors, used after the base palette is exhausted
+EXTENDED_PALETTE = COLOR_PALETTE + [ "#E15759", "#FF9DA7", "#A0CBE8", "#8CD17D",
+    "#FFBE7D", "#D4A6C8", "#86BCB6", "#F1CE63", "#D7B5A6", "#79706E",
+    "#D37295", "#FABFD2", "#499894", "#B6992D" ]
 
-    extra = count - len(COLOR_PALETTE)
-    colormap = colormaps["turbo"]
-    return COLOR_PALETTE + [
-        to_hex(colormap((index + 0.5) / extra))
-        for index in range(extra)
-    ]
+GOLDEN_RATIO = 0.618033988749895
+
+def slice_color(index: int) -> str:
+    """Return a stable color per slice index, so a slice keeps its color when others are added."""
+    if index < len(EXTENDED_PALETTE):
+        return EXTENDED_PALETTE[index]
+
+    hue = (index * GOLDEN_RATIO) % 1
+    return to_hex(hsv_to_rgb((hue, 0.45, 0.8)))
+
+def build_colors(count: int) -> list[str]:
+    return [slice_color(index) for index in range(count)]
 
 class PieChartWidget(QWidget):
     def __init__(self, parent=None):
@@ -146,7 +151,6 @@ class PieChartWidget(QWidget):
         self._clear_pie_chart()
 
         values = [item["value"] for item in data]
-        colors = self.colors
 
         explode = [0.0] * len(values)
         if self.hover_index is not None:
@@ -154,7 +158,7 @@ class PieChartWidget(QWidget):
 
         self.wedges, _ = self.ax.pie(
             values,
-            colors=colors,
+            colors=self.colors,
             startangle=START_ANGLE,
             counterclock=False,
             wedgeprops={"width": DONUT_WIDTH},
