@@ -1,6 +1,6 @@
-from itertools import cycle
-
+from matplotlib import colormaps
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.colors import to_hex
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtGui import QFontMetrics
@@ -18,12 +18,25 @@ DONUT_WIDTH = 0.6
 EXPLODE_OFFSET = 0.08
 EXTRA_PADDING = 48
 
+def build_colors(count: int) -> list[str]:
+    """Return `count` distinct colors: the base palette first, then evenly spaced colormap samples."""
+    if count <= len(COLOR_PALETTE):
+        return COLOR_PALETTE[:count]
+
+    extra = count - len(COLOR_PALETTE)
+    colormap = colormaps["turbo"]
+    return COLOR_PALETTE + [
+        to_hex(colormap((index + 0.5) / extra))
+        for index in range(extra)
+    ]
+
 class PieChartWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.legend_data: list[dict] | None = None
         self.legend_columns: int | None = None
         self.hover_index: int | None = None
+        self.colors: list[str] = []
         self._setup_ui()
 
     def render_chart(self, data: list[dict], title: str, no_data_text: str):
@@ -33,11 +46,12 @@ class PieChartWidget(QWidget):
         self.legend_data = data
         self.legend_columns = None
         self.hover_index = None
+        self.colors = build_colors(len(data))
         self.title_widget.set_primary_text(title)
 
         if not data:
             self._render_no_data(no_data_text)
-        else: 
+        else:
             self._render_pie(data)
             self._render_legend()
 
@@ -133,7 +147,7 @@ class PieChartWidget(QWidget):
         self._clear_pie_chart()
 
         values = [item["value"] for item in data]
-        colors = COLOR_PALETTE[:len(values)]
+        colors = self.colors
 
         explode = [0.0] * len(values)
         if self.hover_index is not None:
@@ -160,10 +174,8 @@ class PieChartWidget(QWidget):
         self.legend_columns = columns
         self._clear_legend()
 
-        colors = cycle(COLOR_PALETTE)
-
         for item in items:
-            widget = LegendItemWidget(next(colors), item["text"], item["index"])
+            widget = LegendItemWidget(self.colors[item["index"]], item["text"], item["index"])
 
             widget.hovered.connect(self._set_hover_index)
 
