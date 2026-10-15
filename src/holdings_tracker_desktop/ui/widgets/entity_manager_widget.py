@@ -64,9 +64,8 @@ class EntityManagerWidget(TranslatableWidget):
         pass
 
     def get_selected_id(self):
-        row = self.table.currentRow()
-        item = self.table.item(row, 0) if row >= 0 else None
-        selected_id = item.data(Qt.UserRole) if item else None
+        selected_rows = self.table.selectionModel().selectedRows()
+        selected_id = self._row_id(selected_rows[0].row()) if selected_rows else None
 
         if selected_id is None:
             self.show_warning(t("no_row_selected"))
@@ -90,10 +89,13 @@ class EntityManagerWidget(TranslatableWidget):
         if not self.supports_details():
             return
 
-        item = self.table.item(row, 0)
-        selected_id = item.data(Qt.UserRole) if item else None
+        selected_id = self._row_id(row)
         if selected_id:
             self.open_details(selected_id)
+
+    def _row_id(self, row: int):
+        item = self.table.item(row, 0)
+        return item.data(Qt.UserRole) if item else None
 
     def show_warning(self, message: str):
         QMessageBox.warning(self, t("warning"), message)
