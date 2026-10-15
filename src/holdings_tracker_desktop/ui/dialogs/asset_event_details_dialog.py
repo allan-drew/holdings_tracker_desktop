@@ -23,7 +23,7 @@ class AssetEventDetailsDialog(BaseDetailsDialog):
             self.add_detail(t("type"), t(event.event_type.value.lower()))
 
             if event.factor:
-                self.add_detail(t("factor"), format_decimal(event.factor))
+                self.add_detail(t("factor"), format_quantity(event.factor))
 
             if event.quantity:
                 self.add_detail(t("quantity"), format_quantity(event.quantity))
@@ -40,7 +40,7 @@ class AssetEventDetailsDialog(BaseDetailsDialog):
             if event.target_unit_price:
                 self.add_detail(t("target_unit_price"), format_decimal(event.target_unit_price))
 
-            if event.residual_value:
+            if event.residual_value is not None:
                 self.add_detail(t("residual_value"), format_decimal(event.residual_value))
 
             self.add_detail(t("created_at"), format_datetime(event.created_at_local))
