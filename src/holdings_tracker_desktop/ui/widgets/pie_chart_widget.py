@@ -40,8 +40,7 @@ class PieChartWidget(QWidget):
         self._setup_ui()
 
     def render_chart(self, data: list[dict], title: str, no_data_text: str):
-        if sum(item["value"] for item in data) <= 0:
-            data = []
+        data = [item for item in data if item["value"] > 0]
 
         self.legend_data = data
         self.legend_columns = None
@@ -219,6 +218,10 @@ class PieChartWidget(QWidget):
         return max_text_width + EXTRA_PADDING
 
     def _set_hover_index(self, index: int | None):
+        # Legend widgets pending deletion may still emit indexes from a previous render
+        if index is not None and not (0 <= index < len(self.legend_data or [])):
+            index = None
+
         if self.hover_index == index:
             return
 
