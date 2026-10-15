@@ -58,7 +58,7 @@ class ChartsWidget(TranslatableWidget):
 
     def refresh_asset_types_menu(self):
         menu = self.menus.get("asset_type")
-        if not menu:
+        if not menu or not self._data_loaded:
             return
 
         menu.clear()
@@ -67,7 +67,7 @@ class ChartsWidget(TranslatableWidget):
 
     def refresh_years_menu(self):
         menu = self.menus.get("year")
-        if not menu:
+        if not menu or not self._data_loaded:
             return
 
         menu.clear()
@@ -78,6 +78,7 @@ class ChartsWidget(TranslatableWidget):
         self.menus: dict[str, QMenuBar] = {}
         self.actions: dict[str, object] = {}
         self.state = ChartState()
+        self.asset_type_names: dict[int, str] = {}
         self._asset_types_menu = None
         self._currencies_menu = None
         self._years_menu = None
@@ -155,19 +156,18 @@ class ChartsWidget(TranslatableWidget):
 
         with get_db() as db:
             service = AssetTypeService(db)
-            asset_types = [
-                (asset_type.id, asset_type.name)
+            self.asset_type_names = {
+                asset_type.id: asset_type.name
                 for asset_type in service.list_all_models()
-            ]
+            }
 
-        for asset_type_id, name in asset_types:
+        for asset_type_id, name in self.asset_type_names.items():
             self._add_action(
                 menu, name, asset_type_id,
                 self._on_asset_type_selected,
             )
 
-        available_ids = {asset_type_id for asset_type_id, _ in asset_types}
-        if self.state.asset_type_id not in available_ids:
+        if self.state.asset_type_id not in self.asset_type_names:
             self.state.asset_type_id = None
 
     def _on_asset_type_selected(self, asset_type_id: int):
@@ -202,7 +202,10 @@ class ChartsWidget(TranslatableWidget):
             )
 
         available_ids = {currency_id for currency_id, _, _ in currencies}
-        if currencies and self.state.currency_id not in available_ids:
+        if not currencies:
+            self.state.currency_id = None
+            self.state.currency_code = ""
+        elif self.state.currency_id not in available_ids:
             currency_id, code, _ = max(currencies, key=lambda c: c[2])
             self.state.currency_id = currency_id
             self.state.currency_code = code
@@ -265,16 +268,7 @@ class ChartsWidget(TranslatableWidget):
         )
 
     def _get_asset_type_label(self) -> str:
-        if self.state.asset_type_id is None:
-            return t("all")
-
-        return self._get_asset_type_name(self.state.asset_type_id)
-
-    def _get_asset_type_name(self, asset_type_id: int) -> str:
-        with get_db() as db:
-            service = AssetTypeService(db)
-            asset_type = service.get(asset_type_id)
-            return asset_type.name
+        return self.asset_type_names.get(self.state.asset_type_id, t("all"))
 
     def _load_chart_data(self):
         loader = self.CHART_LOADERS.get(self.state.dimension)
