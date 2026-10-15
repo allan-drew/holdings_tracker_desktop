@@ -15,8 +15,8 @@ class BrokerNoteBase(BaseSchema):
     quantity: Decimal = Field(..., gt=0)
     price: Decimal = Field(..., gt=0)
 
-    fees: Decimal = Field(default=Decimal("0"))
-    taxes: Decimal = Field(default=Decimal("0"))
+    fees: Decimal = Field(default=Decimal("0"), ge=0)
+    taxes: Decimal = Field(default=Decimal("0"), ge=0)
 
     note_number: Optional[str] = Field(
         None,
@@ -25,12 +25,9 @@ class BrokerNoteBase(BaseSchema):
 
     @field_validator("fees", "taxes", mode="before")
     @classmethod
-    def non_negative_decimals(cls, v: Decimal) -> Decimal:
-        if v is None:
-            return Decimal("0")
-        if v < 0:
-            raise PydanticCustomError("negative_value", "Value cannot be negative")
-        return v
+    def default_missing_costs(cls, v: Decimal) -> Decimal:
+        # Negative values are rejected by ge=0, as in BrokerNoteUpdate
+        return Decimal("0") if v is None else v
 
 class BrokerNoteCreate(BrokerNoteBase):
     model_config = {
