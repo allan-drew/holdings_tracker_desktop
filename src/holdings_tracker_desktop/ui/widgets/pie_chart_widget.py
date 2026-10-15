@@ -27,8 +27,12 @@ class PieChartWidget(QWidget):
         self._setup_ui()
 
     def render_chart(self, data: list[dict], title: str, no_data_text: str):
+        if sum(item["value"] for item in data) <= 0:
+            data = []
+
         self.legend_data = data
         self.legend_columns = None
+        self.hover_index = None
         self.title_widget.set_primary_text(title)
 
         if not data:
