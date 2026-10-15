@@ -2,6 +2,7 @@ from datetime import date as Date
 from decimal import Decimal
 from typing import Optional
 from pydantic import Field, field_validator, model_validator
+from pydantic_core import PydanticCustomError
 from .base import BaseSchema, AuditableSchema
 from holdings_tracker_desktop.models.broker_note import OperationType
 
@@ -28,7 +29,7 @@ class BrokerNoteBase(BaseSchema):
         if v is None:
             return Decimal("0")
         if v < 0:
-            raise ValueError("Value cannot be negative")
+            raise PydanticCustomError("negative_value", "Value cannot be negative")
         return v
 
 class BrokerNoteCreate(BrokerNoteBase):
@@ -52,8 +53,8 @@ class BrokerNoteUpdate(BaseSchema):
     @model_validator(mode="after")
     def validate_at_least_one_field(self):
         if not self.model_fields_set:
-            raise ValueError(
-                "At least one field must be provided for update"
+            raise PydanticCustomError(
+                "no_fields_to_update", "At least one field must be provided for update"
             )
         return self
 

@@ -13,16 +13,18 @@ from holdings_tracker_desktop.ui.core.translations import TRANSLATIONS
 # Schema fields whose label key differs from the field name without "_id".
 FIELD_LABEL_KEYS = {
     "type_id": "type",
+    "event_type": "type",
     "price": "unit_price",
 }
 
 # Pydantic error types that just mean "fill this field in".
 REQUIRED_ERROR_TYPES = {
     "missing", "int_type", "int_parsing", "decimal_type", "decimal_parsing",
-    "date_type", "string_type", "string_too_short", "enum",
+    "date_type", "string_type", "enum",
 }
 
 ERROR_TYPE_KEYS = {
+    "string_too_short": "validation_too_short",
     "string_too_long": "validation_too_long",
 }
 
@@ -73,10 +75,13 @@ class BaseFormDialog(QDialog):
         field = str(loc[-1])
         return t(FIELD_LABEL_KEYS.get(field, field.removesuffix("_id")))
 
+    def _is_empty_string_error(self, err: dict) -> bool:
+        return err["type"] == "string_too_short" and not err.get("input")
+
     def _translate_validation_message(self, err: dict) -> str:
         error_type = err["type"]
 
-        if error_type in REQUIRED_ERROR_TYPES:
+        if error_type in REQUIRED_ERROR_TYPES or self._is_empty_string_error(err):
             key = "validation_required"
         else:
             key = ERROR_TYPE_KEYS.get(error_type, f"validation_{error_type}")
