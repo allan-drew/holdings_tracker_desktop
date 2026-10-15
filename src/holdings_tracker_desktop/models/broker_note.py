@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from enum import Enum as PyEnum
 from decimal import Decimal
 from .base import AuditableModel
+from holdings_tracker_desktop.utils.exceptions import ValidationException
 
 if TYPE_CHECKING:
     from .asset import Asset
@@ -78,7 +79,7 @@ class BrokerNote(AuditableModel):
     @validates("operation")
     def _validate_operation(self, key, value):
         if self.id is not None and value != self.operation:
-            raise ValueError("Operation cannot be changed")
+            raise ValidationException("Operation cannot be changed", "error_operation_cannot_change")
         return value
 
     def to_response(self) -> dict:

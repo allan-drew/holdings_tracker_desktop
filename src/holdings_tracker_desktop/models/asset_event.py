@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from enum import Enum as PyEnum
 from decimal import Decimal
 from .base import AuditableModel
+from holdings_tracker_desktop.utils.exceptions import ValidationException
 
 if TYPE_CHECKING:
     from .asset import Asset
@@ -68,7 +69,7 @@ class AssetEvent(AuditableModel):
     @validates("event_type")
     def _validate_event_type(self, key, value):
         if self.id is not None and value != self.event_type:
-            raise ValueError("Type cannot be changed")
+            raise ValidationException("Type cannot be changed", "error_type_cannot_change")
         return value
 
     @validates("target_asset_id")
@@ -79,8 +80,9 @@ class AssetEvent(AuditableModel):
             and self.asset_id is not None
             and value == self.asset_id
         ):
-            raise ValueError(
-                "Conversion target asset must be different from source asset"
+            raise ValidationException(
+                "Conversion target asset must be different from source asset",
+                "error_conversion_target_same_asset"
             )
 
         return value
