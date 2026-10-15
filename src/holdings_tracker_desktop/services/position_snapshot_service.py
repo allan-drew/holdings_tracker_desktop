@@ -144,7 +144,8 @@ class PositionSnapshotService:
     ) -> list[dict]:
         query, total_cost = self._base_allocation_query(year)
 
-        sector_label = func.coalesce(AssetSector.name, "Unclassified").label("sector_name")
+        # Assets without a sector are grouped under a None label, named by the UI
+        sector_label = AssetSector.name.label("sector_name")
 
         query = query.with_entities(
             sector_label,

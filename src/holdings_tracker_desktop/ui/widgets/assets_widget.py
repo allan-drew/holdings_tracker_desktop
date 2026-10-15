@@ -139,4 +139,4 @@ class AssetsWidget(EntityManagerWidget):
             self.table.setItem(row, 0, table_item(item['ticker'], item['id']))
             self.table.setItem(row, 1, table_item(item['type_name']))
             self.table.setItem(row, 2, table_item(item['currency_code']))
-            self.table.setItem(row, 3, table_item(item['sector_name']))
+            self.table.setItem(row, 3, table_item(item['sector_name'] or t("no_sector")))

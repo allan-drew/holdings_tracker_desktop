@@ -52,7 +52,7 @@ class Asset(AuditableModel):
         lazy="selectin"
     )
 
-    sector: Mapped[AssetSector] = relationship(
+    sector: Mapped[AssetSector | None] = relationship(
         back_populates="assets",
         cascade="save-update",
         lazy="selectin"

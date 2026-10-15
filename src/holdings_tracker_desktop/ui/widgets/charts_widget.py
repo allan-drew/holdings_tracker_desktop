@@ -277,9 +277,14 @@ class ChartsWidget(TranslatableWidget):
 
         with get_db() as db:
             service = PositionSnapshotService(db)
-            return loader(
+            data = loader(
                 service,
                 year=self.state.year,
                 asset_type_id=self.state.asset_type_id,
                 currency_id=self.state.currency_id,
             )
+
+        for item in data:
+            item["label"] = item["label"] or t("no_sector")
+
+        return data

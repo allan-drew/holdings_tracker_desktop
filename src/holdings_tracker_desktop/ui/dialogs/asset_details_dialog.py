@@ -21,7 +21,7 @@ class AssetDetailsDialog(BaseDetailsDialog):
             self.add_detail(t("ticker"), asset.ticker)
             self.add_detail(t("type"), asset.asset_type.name)
             self.add_detail(t("currency"), asset.currency.code)
-            self.add_detail(t("sector"), asset.sector.name if asset.sector else "-")
+            self.add_detail(t("sector"), asset.sector.name if asset.sector else t("no_sector"))
             self.add_detail(t("broker_notes"), str(asset.broker_notes_count))
             self.add_detail(t("asset_events"), str(asset.events_count))
             self.add_detail(t("asset_ticker_history"), str(asset.ticker_histories_count))
