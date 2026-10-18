@@ -152,7 +152,8 @@ def test_allocation_is_filtered_by_currency(db, refs, make_asset):
     by_usd = service.get_allocation_by_sector(2024, currency_id=usd.id)
 
     assert by_brl == [{"label": "BRL3", "value": 100.0}]
-    assert by_usd == [{"label": "Unclassified", "value": 200.0}]
+    # Assets without a sector get a None label, which the UI translates
+    assert by_usd == [{"label": None, "value": 200.0}]
 
 
 def test_yearly_positions_hide_closed_positions(db, refs, make_asset):
