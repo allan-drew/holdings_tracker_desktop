@@ -1,7 +1,9 @@
 from decimal import Decimal
 
-from PySide6.QtCore import QDate
-from PySide6.QtWidgets import QWidget, QButtonGroup, QRadioButton, QHBoxLayout, QLineEdit
+from PySide6.QtCore import QDate, QEvent, QMimeData, Qt, QTimer
+from PySide6.QtWidgets import (
+    QWidget, QButtonGroup, QRadioButton, QHBoxLayout, QLineEdit, QLabel, QMessageBox
+)
 
 from holdings_tracker_desktop.database import get_db
 from holdings_tracker_desktop.models.broker_note import OperationType
@@ -9,8 +11,12 @@ from holdings_tracker_desktop.schemas.broker_note import BrokerNoteCreate, Broke
 from holdings_tracker_desktop.services.broker_note_service import BrokerNoteService
 from holdings_tracker_desktop.ui.comboboxes import AssetComboBox, BrokerComboBox
 from holdings_tracker_desktop.ui.core import t
+from holdings_tracker_desktop.ui.core.errors import error_text
 from holdings_tracker_desktop.ui.forms.base_form_dialog import BaseFormDialog
 from holdings_tracker_desktop.ui.forms.date_input import DateInput
+from holdings_tracker_desktop.utils.exceptions import AppException
+
+DRAG_EVENTS = {QEvent.DragEnter, QEvent.DragMove, QEvent.Drop}
 
 class BrokerNoteForm(BaseFormDialog):
     def __init__(self, broker_note_id=None, initial_data=None, parent=None):
@@ -20,6 +26,9 @@ class BrokerNoteForm(BaseFormDialog):
         self.setWindowTitle(
             t("edit_broker_note") if self.is_edit_mode else t("new_broker_note")
         )
+
+        if not self.is_edit_mode:
+            self._setup_pdf_drop()
 
     def _init_state(self, broker_note_id, initial_data):
         self.broker_note_id = broker_note_id
@@ -154,6 +163,91 @@ class BrokerNoteForm(BaseFormDialog):
         form_layout.addRow(f"{t('unit_price')}:", self.price_input)
         form_layout.addRow(f"{t('fees')}:", self.fees_input)
         form_layout.addRow(f"{t('taxes')}:", self.taxes_input)
+
+    def _setup_pdf_drop(self):
+        hint = QLabel(t("drop_broker_note_pdf_hint"))
+        hint.setWordWrap(True)
+        hint.setStyleSheet("color: gray; font-style: italic;")
+        self._form_layout.insertRow(0, hint)
+
+        # Inputs such as QLineEdit handle drops themselves, so the filter goes on
+        # every child to accept a PDF dropped anywhere on the form.
+        self.setAcceptDrops(True)
+        self.installEventFilter(self)
+        for widget in self.findChildren(QWidget):
+            widget.installEventFilter(self)
+
+    def eventFilter(self, watched, event):
+        if event.type() in DRAG_EVENTS:
+            path = self._dropped_pdf_path(event.mimeData())
+
+            if path:
+                event.acceptProposedAction()
+
+                if event.type() == QEvent.Drop:
+                    # Leave the drop handler before showing any message box
+                    QTimer.singleShot(0, lambda: self._import_pdf(path))
+
+                return True
+
+        return super().eventFilter(watched, event)
+
+    def _dropped_pdf_path(self, mime_data: QMimeData) -> str | None:
+        urls = mime_data.urls() if mime_data.hasUrls() else []
+
+        if len(urls) != 1 or not urls[0].isLocalFile():
+            return None
+
+        path = urls[0].toLocalFile()
+        return path if path.lower().endswith(".pdf") else None
+
+    def _import_pdf(self, path: str):
+        from holdings_tracker_desktop.importers.broker_notes import parse_broker_note_pdf
+
+        try:
+            note = parse_broker_note_pdf(path)
+        except AppException as e:
+            QMessageBox.warning(self, t("error"), error_text(e))
+            return
+
+        self.date_input.setDate(QDate(note.date))
+
+        if note.operation == OperationType.SELL:
+            self.sell_radio.setChecked(True)
+        else:
+            self.buy_radio.setChecked(True)
+
+        self.note_number_input.setText(note.note_number or "")
+        self.quantity_input.setValue(float(note.quantity))
+        self.price_input.setValue(float(note.price))
+        self.fees_input.setValue(float(note.fees))
+        self.taxes_input.setValue(float(note.taxes))
+
+        warnings = []
+
+        broker_index = self._find_broker_index(note.broker_aliases)
+        if broker_index >= 0:
+            self.broker_combo.setCurrentIndex(broker_index)
+        else:
+            warnings.append(t("error_pdf_broker_not_registered"))
+
+        asset_index = self.asset_combo.findText(note.ticker, Qt.MatchFixedString)
+        self.asset_combo.setCurrentIndex(max(asset_index, 0))
+        if asset_index < 0:
+            warnings.append(t("error_pdf_asset_not_registered").format(ticker=note.ticker))
+
+        if warnings:
+            QMessageBox.warning(self, t("warning"), "\n".join(warnings))
+
+    def _find_broker_index(self, aliases: tuple[str, ...]) -> int:
+        # Index 0 is the placeholder
+        for index in range(1, self.broker_combo.count()):
+            name = self.broker_combo.itemText(index).upper()
+
+            if any(alias.upper() in name for alias in aliases):
+                return index
+
+        return -1
 
     def _save(self):
         date = self.date_input.date().toPython()
