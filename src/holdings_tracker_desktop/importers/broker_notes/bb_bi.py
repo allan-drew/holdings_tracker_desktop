@@ -23,7 +23,12 @@ TRADE_RE = re.compile(
 # The 4-char root may contain digits (B3SA3, M1TA34) but ends with a letter
 TICKER_RE = re.compile(r"\b([A-Z0-9]{3}[A-Z]\d{1,2})F?\b")
 NET_RE = re.compile(rf"L[íi]quido para\s+\d{{2}}/\d{{2}}/\d{{4}}\s+({NUMBER})")
-IRRF_RE = re.compile(rf"I\.R\.R\.F\.?\s*s/\s*opera[^\n]*?({NUMBER})\s*$", re.MULTILINE)
+# e.g. "I.R.R.F. s/ operações, base R$ 100.000,00 5,00"; the Day-Trade line has no "s/"
+IRRF_LINE_RE = re.compile(r"^[^\n]*I\.R\.R\.F\.?\s*s/\s*opera[^\n]*$", re.MULTILINE)
+NUMBER_RE = re.compile(NUMBER)
+
+# Rounding allowed between quantity x price and the trade value printed on the note
+VALUE_TOLERANCE = Decimal("0.01")
 
 class BbBiParser(BrokerNoteParser):
     """BB Banco de Investimento (BB-BI) home broker notes."""
@@ -43,11 +48,14 @@ class BbBiParser(BrokerNoteParser):
             )
 
         trade = trades[0]
+        quantity = parse_br_decimal(trade["quantity"])
+        price = parse_br_decimal(trade["price"])
         gross = parse_br_decimal(trade["value"])
         net = parse_br_decimal(self._search(NET_RE, text, "net_value"))
+        taxes = self._irrf(text)
+        fees = abs(net - gross) - taxes
 
-        irrf_match = IRRF_RE.search(text)
-        taxes = parse_br_decimal(irrf_match.group(1)) if irrf_match else Decimal("0")
+        self._check_consistency(quantity, price, gross, fees, taxes)
 
         return ParsedBrokerNote(
             broker_aliases=self.broker_aliases,
@@ -55,11 +63,39 @@ class BbBiParser(BrokerNoteParser):
             operation=OperationType.BUY if trade["side"] == "C" else OperationType.SELL,
             note_number=self._search(NOTE_NUMBER_RE, text, "note_number"),
             ticker=self._ticker(trade["spec"]),
-            quantity=parse_br_decimal(trade["quantity"]),
-            price=parse_br_decimal(trade["price"]),
-            fees=abs(net - gross) - taxes,
+            quantity=quantity,
+            price=price,
+            fees=fees,
             taxes=taxes,
         )
+
+    def _irrf(self, text: str) -> Decimal:
+        line = IRRF_LINE_RE.search(text)
+        if not line:
+            return Decimal("0")
+
+        # The value must follow the label on the same line, after the base when there is one
+        label_start = line.group(0).find("I.R.R.F")
+        after_label = line.group(0)[label_start:]
+        numbers = NUMBER_RE.findall(after_label)
+        if len(numbers) < (2 if "base" in after_label.lower() else 1):
+            raise self._parse_error("irrf")
+
+        return parse_br_decimal(numbers[-1])
+
+    def _check_consistency(self, quantity, price, gross, fees, taxes):
+        # Values read from the wrong place usually break one of these
+        if (
+            abs(quantity * price - gross) > VALUE_TOLERANCE
+            or fees < 0
+            or taxes < 0
+            or taxes >= gross
+        ):
+            raise ValidationException(
+                f"Inconsistent values in PDF: quantity={quantity} price={price} "
+                f"value={gross} fees={fees} taxes={taxes}",
+                "error_pdf_inconsistent_values",
+            )
 
     def _date(self, text: str) -> date:
         try:
