@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from holdings_tracker_desktop.importers.broker_notes.base import (
@@ -50,7 +50,7 @@ class BbBiParser(BrokerNoteParser):
 
         return ParsedBrokerNote(
             broker_aliases=self.broker_aliases,
-            date=datetime.strptime(self._search(DATE_RE, text, "date"), "%d/%m/%Y").date(),
+            date=self._date(text),
             operation=OperationType.BUY if trade["side"] == "C" else OperationType.SELL,
             note_number=self._search(NOTE_NUMBER_RE, text, "note_number"),
             ticker=self._ticker(trade["spec"]),
@@ -59,6 +59,12 @@ class BbBiParser(BrokerNoteParser):
             fees=abs(net - gross) - taxes,
             taxes=taxes,
         )
+
+    def _date(self, text: str) -> date:
+        try:
+            return datetime.strptime(self._search(DATE_RE, text, "date"), "%d/%m/%Y").date()
+        except ValueError:
+            raise self._parse_error("date")
 
     def _ticker(self, spec: str) -> str:
         # The ticker is the last code in the specification ("ENGIE BRASIL ON NM - EGIE3");

@@ -7,13 +7,13 @@ PARSERS: list[BrokerNoteParser] = [BbBiParser()]
 
 def extract_pdf_text(path: str) -> str:
     from pypdf import PdfReader
-    from pypdf.errors import PyPdfError
 
     try:
         reader = PdfReader(path)
         return "\n".join(page.extract_text() or "" for page in reader.pages)
-    except (OSError, PyPdfError) as e:
-        raise ValidationException(f"Could not read the PDF: {e}", "error_pdf_unreadable")
+    except Exception as e:
+        # pypdf raises plain ValueError, TypeError, etc. on damaged files, not only PyPdfError
+        raise ValidationException(f"Could not read the PDF: {e!r}", "error_pdf_unreadable")
 
 def parse_broker_note_text(text: str) -> ParsedBrokerNote:
     for parser in PARSERS:
