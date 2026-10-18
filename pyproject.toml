@@ -16,6 +16,7 @@ dependencies = [
     "qtawesome (>=1.4.0,<2.0.0)",
     "sqlalchemy (>=2.0.44,<3.0.0)",
     "tzdata (>=2025.3,<2026.0)",
+    "pypdf (>=6.21.1,<7.0.0)",
 ]
 
 [tool.poetry]
