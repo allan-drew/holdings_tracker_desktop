@@ -209,6 +209,10 @@ class BrokerNoteForm(BaseFormDialog):
         except AppException as e:
             QMessageBox.warning(self, t("error"), error_text(e))
             return
+        except Exception:
+            # Runs from a timer slot, where an uncaught error would only reach stderr
+            QMessageBox.warning(self, t("error"), t("error_pdf_unreadable"))
+            return
 
         self.date_input.setDate(QDate(note.date))
 
@@ -225,10 +229,10 @@ class BrokerNoteForm(BaseFormDialog):
 
         warnings = []
 
+        # Fall back to the placeholder so a note is never saved under the wrong broker
         broker_index = self._find_broker_index(note.broker_aliases)
-        if broker_index >= 0:
-            self.broker_combo.setCurrentIndex(broker_index)
-        else:
+        self.broker_combo.setCurrentIndex(max(broker_index, 0))
+        if broker_index < 0:
             warnings.append(t("error_pdf_broker_not_registered"))
 
         asset_index = self.asset_combo.findText(note.ticker, Qt.MatchFixedString)
