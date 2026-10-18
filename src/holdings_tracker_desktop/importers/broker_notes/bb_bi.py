@@ -20,7 +20,8 @@ TRADE_RE = re.compile(
     rf"(?P<quantity>{NUMBER})\s+(?P<price>{NUMBER})\s+(?P<value>{NUMBER})\s+[DC]\s*$",
     re.MULTILINE,
 )
-TICKER_RE = re.compile(r"\b([A-Z]{4}\d{1,2})F?\b")
+# The 4-char root may contain digits (B3SA3, M1TA34) but ends with a letter
+TICKER_RE = re.compile(r"\b([A-Z0-9]{3}[A-Z]\d{1,2})F?\b")
 NET_RE = re.compile(rf"L[íi]quido para\s+\d{{2}}/\d{{2}}/\d{{4}}\s+({NUMBER})")
 IRRF_RE = re.compile(rf"I\.R\.R\.F\.?\s*s/\s*opera[^\n]*?({NUMBER})\s*$", re.MULTILINE)
 
