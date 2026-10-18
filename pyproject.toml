@@ -11,12 +11,12 @@ dependencies = [
     "alembic (>=1.17.2,<2.0.0)",
     "matplotlib (>=3.10.8,<4.0.0)",
     "pydantic (>=2.12.5,<3.0.0)",
+    "pypdf (>=6.21.1,<7.0.0)",
     "pyside6 (>=6.10.1,<7.0.0)",
     "python-dotenv (>=1.2.1,<2.0.0)",
     "qtawesome (>=1.4.0,<2.0.0)",
     "sqlalchemy (>=2.0.44,<3.0.0)",
     "tzdata (>=2025.3,<2026.0)",
-    "pypdf (>=6.21.1,<7.0.0)",
 ]
 
 [tool.poetry]
