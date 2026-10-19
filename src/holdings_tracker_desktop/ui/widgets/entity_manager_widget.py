@@ -299,7 +299,7 @@ class EntityManagerWidget(TranslatableWidget):
             icon = BUTTONS_CONFIG[action]
 
             button = QPushButton("")
-            button.setIcon(qta.icon(icon))
+            button.setIcon(qta.icon(icon, color="#808080"))
             self.buttons[action] = button
             toolbar.addWidget(button)
 
@@ -309,7 +309,7 @@ class EntityManagerWidget(TranslatableWidget):
 
         for name, icon, handler in self.get_extra_buttons():
             button = QPushButton("")
-            button.setIcon(qta.icon(icon))
+            button.setIcon(qta.icon(icon, color="#808080"))
             self.buttons[name] = button
             toolbar.addWidget(button)
             button.clicked.connect(handler)
